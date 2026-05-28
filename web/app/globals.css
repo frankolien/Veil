@@ -1,0 +1,190 @@
+@import "tailwindcss";
+
+/* ============================================================
+   VEIL — Aurora theme tokens (indigo glass · luminous cyan)
+   These power Tailwind arbitrary values like bg-[var(--accent)].
+   ============================================================ */
+:root {
+  --bg: #070912;
+  --bg2: rgba(255, 255, 255, 0.028);
+  --bg3: rgba(255, 255, 255, 0.05);
+  --panel: rgba(18, 22, 38, 0.55);
+  --line: rgba(255, 255, 255, 0.09);
+  --line2: rgba(255, 255, 255, 0.16);
+  --text: #eef1ff;
+  --dim: #9aa1c6;
+  --faint: #5a608a;
+  --accent: #6fe9f7;
+  --accent2: #a78bfa;
+  --accent-ink: #03161b;
+  --buy: #56e7c3;
+  --sell: #ff86bd;
+  --glow: rgba(111, 233, 247, 0.34);
+  --ring: rgba(111, 233, 247, 0.55);
+  --grid: rgba(255, 255, 255, 0.018);
+  --radius: 18px;
+  --veil-blur: 7px;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-dim: var(--dim);
+  --color-faint: var(--faint);
+  --color-accent: var(--accent);
+  --color-buy: var(--buy);
+  --color-sell: var(--sell);
+  --color-line: var(--line);
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+body {
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+::selection { background: var(--accent); color: var(--accent-ink); }
+
+/* ---- Backgrounds: grid + aurora mesh + grain ---- */
+.veil-bg { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.veil-bg-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 35%, transparent 78%);
+  -webkit-mask-image: radial-gradient(ellipse 120% 90% at 50% 0%, #000 35%, transparent 78%);
+}
+.veil-bg-mesh { position: absolute; inset: -20%; }
+.veil-bg-mesh::before, .veil-bg-mesh::after {
+  content: ""; position: absolute; border-radius: 50%; filter: blur(80px);
+}
+.veil-bg-mesh::before {
+  width: 58vw; height: 58vw; left: -6vw; top: -8vw;
+  background: radial-gradient(circle, rgba(124, 77, 255, 0.5), transparent 62%);
+  animation: veilFloat1 26s ease-in-out infinite;
+}
+.veil-bg-mesh::after {
+  width: 52vw; height: 52vw; right: -4vw; top: 6vw;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.42), transparent 62%);
+  animation: veilFloat2 32s ease-in-out infinite;
+}
+@keyframes veilFloat1 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(8vw,6vw)} }
+@keyframes veilFloat2 { 0%,100%{transform:translate(0,0)} 50%{transform:translate(-7vw,4vw)} }
+.veil-bg-grain {
+  position: absolute; inset: 0; opacity: 0.5; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ---- Redaction primitives ---- */
+.veil-cipher { font-family: var(--font-mono); letter-spacing: 0.04em; }
+.veil-redacted { transition: filter .5s ease, color .5s ease, opacity .4s ease; }
+.veil-redacted.is-revealed { color: var(--text); }
+.redaction-scramble { color: var(--accent); opacity: 0.82; }
+.redaction-blur { filter: blur(var(--veil-blur)); user-select: none; color: var(--text); }
+
+/* ---- Glow dot (pulsing status) ---- */
+.veil-glowdot {
+  width: 8px; height: 8px; border-radius: 50%;
+  position: relative; display: inline-block; flex: none;
+}
+.veil-glowdot::after {
+  content: ""; position: absolute; inset: -4px; border-radius: 50%;
+  opacity: 0.5; animation: veilPulse 1.8s ease-in-out infinite;
+}
+.veil-glowdot-accent, .veil-glowdot-accent::after { background: var(--accent); }
+.veil-glowdot-buy, .veil-glowdot-buy::after { background: var(--buy); }
+.veil-glowdot-warn { background: #f5c14e; }
+.veil-glowdot-warn::after { background: #f5c14e; }
+@keyframes veilPulse {
+  0%, 100% { transform: scale(1); opacity: 0.5; }
+  50% { transform: scale(1.8); opacity: 0; }
+}
+
+/* ---- Book scan + clearing line animations ---- */
+.veil-book-scan {
+  position: absolute; left: 0; right: 0; height: 38px; z-index: 3;
+  background: linear-gradient(var(--accent), transparent);
+  opacity: 0.25; animation: veilScan 1.4s cubic-bezier(.4,0,.2,1) forwards;
+  pointer-events: none;
+}
+@keyframes veilScan { from { top: -38px; } to { top: 100%; } }
+.veil-clear-line {
+  position: absolute; left: 0; right: 0; height: 1px;
+  background: var(--accent); box-shadow: 0 0 12px 1px var(--glow);
+  animation: veilLineIn .5s ease;
+}
+@keyframes veilLineIn { from { opacity: 0; transform: scaleX(.4); } to { opacity: 1; transform: scaleX(1); } }
+.veil-row-flash { animation: veilRowFlash .55s ease; }
+@keyframes veilRowFlash {
+  0% { background: color-mix(in oklab, var(--accent) 22%, transparent); }
+  100% { background: transparent; }
+}
+
+/* ---- Hero marquee ---- */
+.veil-marquee {
+  display: flex; width: max-content;
+  animation: veilMarquee 38s linear infinite;
+}
+@keyframes veilMarquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+/* ---- Order ticket encryption blob ---- */
+.veil-enc-blob {
+  color: var(--accent); opacity: 0.7;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+/* ---- Toast slide-in ---- */
+.veil-toast-in { animation: veilToastIn .3s ease; }
+@keyframes veilToastIn {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+/* ---- Order row appearance ---- */
+.veil-order-in { animation: veilOrderIn .35s ease; }
+@keyframes veilOrderIn {
+  from { opacity: 0; transform: translateY(-6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* ---- Glass panel (backdrop blur + radial glow) ---- */
+.veil-panel {
+  position: relative; background: var(--panel);
+  border: 1px solid var(--line); border-radius: var(--radius);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+  backdrop-filter: blur(16px) saturate(140%);
+  overflow: hidden;
+}
+.veil-panel-glow {
+  position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(120% 80% at 80% -10%, var(--glow), transparent 60%);
+  opacity: 0.5;
+}
+
+/* ---- CTA grid bg (faint inner grid) ---- */
+.veil-cta-grid {
+  position: absolute; inset: 0;
+  background-image:
+    linear-gradient(var(--grid) 1px, transparent 1px),
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+  background-size: 40px 40px;
+  mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000, transparent 75%);
+  -webkit-mask-image: radial-gradient(ellipse 70% 80% at 50% 50%, #000, transparent 75%);
+}
+
+/* ---- Zama mark gradient chip ---- */
+.veil-zama-mark {
+  background: linear-gradient(135deg, var(--accent), var(--accent2));
+  box-shadow: 0 0 12px -2px var(--glow);
+}

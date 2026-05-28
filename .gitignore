@@ -1,0 +1,96 @@
+
+.env
+.env.local
+.env.development
+.env.development.local
+.env.production
+.env.production.local
+.env.test
+.env.test.local
+.env.*.local
+
+# Common private-key / mnemonic dumps
+*.pem
+*.key
+*.p12
+*.pfx
+mnemonic.txt
+private-key.txt
+secrets.json
+secrets.yaml
+secrets.yml
+
+# Hardhat-vars file if anyone exports it into the repo
+hardhat.vars.json
+.hardhat-vars
+
+.claude/
+.cursor/
+.aider*
+.continue/
+
+# IDEs
+.idea/
+.vscode/
+*.code-workspace
+
+#  Dependencies
+node_modules/
+.pnpm-store/
+.yarn/cache
+.yarn/install-state.gz
+.yarn/build-state.yml
+.yarn/unplugged
+.yarn/.gitignore
+
+#  OS junk
+.DS_Store
+.AppleDouble
+.LSOverride
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+#  Logs / caches
+
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.eslintcache
+*.tsbuildinfo
+.turbo/
+
+
+#  contracts/  (Hardhat)
+
+contracts/artifacts/
+contracts/cache/
+contracts/coverage/
+contracts/coverage.json
+contracts/types/
+contracts/typechain/
+contracts/typechain-types/
+contracts/dist/
+contracts/deployments/localhost/
+contracts/fhevmTemp/
+contracts/.openzeppelin/
+contracts/gas-report.txt
+
+#  web/ + tokenops/  (Next.js)
+
+web/.next/
+web/out/
+web/.turbo/
+web/next-env.d.ts
+web/.vercel
+tokenops/.next/
+tokenops/out/
+tokenops/.turbo/
+tokenops/next-env.d.ts
+tokenops/.vercel
+
+# Local-only env example duplicates (we ship the .example version only)
+# .env.local.example IS committed; .env.local is the secret one (caught above)
