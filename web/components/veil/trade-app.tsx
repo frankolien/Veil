@@ -1,18 +1,22 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useAccount, useConnect, useWriteContract } from "wagmi";
-import { useEncrypt } from "@zama-fhe/react-sdk";
-import { bytesToHex } from "viem";
-import { BatchPanel, OrderBook, useBatchLifecycle, type Lifecycle } from "./orderbook";
+import { useCallback, useEffect, useState } from "react";
+import { useAccount, useChainId, useConfig, useConnect, useDisconnect, useReadContract, useSwitchChain, useWriteContract } from "wagmi";
+import { waitForTransactionReceipt } from "wagmi/actions";
+import { sepolia } from "wagmi/chains";
+import { useEncrypt, useUserDecrypt } from "@zama-fhe/react-sdk";
+import { bytesToHex, parseEventLogs } from "viem";
+import { BatchPanel, OrderBook, type Lifecycle } from "./orderbook";
 import { Btn, Cipher, EthereumMark, Icon, Pill, Redacted, Wordmark } from "./primitives";
 import { veilAbi } from "@/lib/abi";
 import { VEIL_ADDRESS, hasVeilDeployment, shortAddr } from "@/lib/config";
+import { useVeilLifecycle } from "@/lib/use-veil-lifecycle";
 
 type MyOrderStatus = "sealed" | "fillReady" | "decrypting" | "filled" | "nofill";
 type MyOrder = {
   id: number;
   batchId: number;
+  orderIdx?: number;
   side: "buy" | "sell";
   tickIdx: number;
   price: number;
@@ -24,30 +28,54 @@ type MyOrder = {
   txHash?: `0x${string}`;
 };
 
+const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000" as const;
+
 function OrderTicket({
   life,
   onPlace,
 }: {
   life: Lifecycle;
-  onPlace: (o: { side: "buy" | "sell"; tickIdx: number; price: number; size: number; txHash?: `0x${string}` }) => void;
+  onPlace: (o: {
+    side: "buy" | "sell";
+    tickIdx: number;
+    price: number;
+    size: number;
+    txHash?: `0x${string}`;
+    orderIdx?: number;
+  }) => void;
 }) {
   const { book, phase } = life;
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [tickIdx, setTickIdx] = useState(3);
   const [size, setSize] = useState("100");
-  const [stage, setStage] = useState<"idle" | "encrypting" | "submitting">("idle");
+  const [stage, setStage] = useState<"idle" | "encrypting" | "submitting" | "confirming">("idle");
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const { address } = useAccount();
+  const chainId = useChainId();
+  const config = useConfig();
+  const { switchChainAsync, isPending: switching } = useSwitchChain();
   const deployed = hasVeilDeployment();
   const encrypt = useEncrypt();
   const { writeContractAsync } = useWriteContract();
 
   const open = phase === "open";
-  const busy = stage !== "idle";
+  const onSepolia = chainId === sepolia.id;
+  const busy = stage !== "idle" || switching;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (!address || !open || busy) return;
+    setErrorMsg(null);
+    if (deployed && !onSepolia) {
+      try {
+        await switchChainAsync({ chainId: sepolia.id });
+      } catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setErrorMsg("Switch MetaMask to Sepolia to submit: " + msg);
+        return;
+      }
+    }
     if (!deployed) {
       // Demo mode: simulate the flow without on-chain interaction
       setStage("encrypting");
@@ -74,6 +102,7 @@ function OrderTicket({
       const toHex = (v: Uint8Array | `0x${string}`) =>
         typeof v === "string" ? v : bytesToHex(v);
       const txHash = await writeContractAsync({
+        chainId: sepolia.id,
         address: VEIL_ADDRESS as `0x${string}`,
         abi: veilAbi,
         functionName: "placeOrder",
@@ -83,10 +112,50 @@ function OrderTicket({
           toHex(result.handles[2]),
           toHex(result.inputProof),
         ],
+        // Skip viem's auto-estimate. FHEVM precompiles confuse eth_estimateGas
+        // into returning a number above Sepolia's block gas limit, which then
+        // makes the wallet's RPC reject the submission ("gas limit too high").
+        // Real usage for the 4-tick aggregation loop is ~3–6M.
+        gas: 15_000_000n,
       });
-      onPlace({ side, tickIdx, price: book.ticks[tickIdx].price, size: Number(size) || 0, txHash });
-    } catch {
-      // Surface in UI via stage reset; keep silent on the console.
+      setStage("confirming");
+      const receipt = await waitForTransactionReceipt(config, { hash: txHash });
+      if (receipt.status !== "success") {
+        // Most common cause on Sepolia: batch's closeBlock was reached between
+        // when the UI computed `phase === "open"` and when the tx mined. The
+        // contract reverts with BatchNotOpen() — no return-data string in
+        // custom errors, so we can only say "reverted".
+        throw new Error(
+          `placeOrder reverted on-chain (status=${receipt.status}). ` +
+            `The batch may have closed before your tx landed — refresh and retry.`,
+        );
+      }
+      const placed = parseEventLogs({
+        abi: veilAbi,
+        eventName: "OrderPlaced",
+        logs: receipt.logs,
+      });
+      const orderIdx = placed[0] ? Number(placed[0].args.orderIndex) : undefined;
+      onPlace({
+        side,
+        tickIdx,
+        price: book.ticks[tickIdx].price,
+        size: Number(size) || 0,
+        txHash,
+        orderIdx,
+      });
+    } catch (err) {
+      // Zama SDK wraps the real error in `cause`; unwrap so the UI shows it.
+      const chain: string[] = [];
+      let cur: unknown = err;
+      while (cur && chain.length < 5) {
+        const m = cur instanceof Error ? cur.message : String(cur);
+        chain.push(m);
+        cur = cur instanceof Error ? (cur as Error & { cause?: unknown }).cause : undefined;
+      }
+      const msg = chain.join(" ← ");
+      console.error("Veil placeOrder failed:", err);
+      setErrorMsg(msg.length > 320 ? msg.slice(0, 320) + "…" : msg);
     } finally {
       setStage("idle");
     }
@@ -177,26 +246,182 @@ function OrderTicket({
         disabled={!address || busy || !open}
         className={busy ? "opacity-70" : ""}
       >
-        {stage === "encrypting"
-          ? "Encrypting order…"
-          : stage === "submitting"
-            ? "Sealing on-chain…"
-            : !address
-              ? "Connect wallet to trade"
-              : !open
-                ? "Batch closed — wait for next"
-                : "Encrypt & submit sealed bid"}
+        {switching
+          ? "Switching to Sepolia…"
+          : stage === "encrypting"
+            ? "Encrypting order…"
+            : stage === "submitting"
+              ? "Sealing on-chain…"
+              : stage === "confirming"
+                ? "Waiting for confirmation…"
+                : !address
+                  ? "Connect wallet to trade"
+                  : !open
+                    ? "Batch closed — wait for next"
+                    : deployed && !onSepolia
+                      ? "Switch to Sepolia & submit"
+                      : "Encrypt & submit sealed bid"}
       </Btn>
+
+      {errorMsg && (
+        <div className="relative text-[12px] leading-[1.5] text-[var(--sell)] font-[var(--font-mono)] break-all px-3 py-2.5 border border-[color-mix(in_oklab,var(--sell)_35%,transparent)] bg-[color-mix(in_oklab,var(--sell)_8%,transparent)] rounded-[8px]">
+          <span className="font-semibold text-[var(--sell)] mr-1.5">Error:</span>
+          {errorMsg}
+        </div>
+      )}
     </form>
+  );
+}
+
+/**
+ * One row inside MyOrders. Per order it reads the on-chain batch state for the
+ * order's batchId; once that batch is Cleared, it reads the fill handle and
+ * shows a "decrypt fill" button. Clicking the button enables a useUserDecrypt
+ * query against the fill handle — the relayer asks the threshold KMS for a
+ * user-share decryption, returns the clear value, and we show "filled X" or
+ * "no fill" (value == 0).
+ */
+function OrderRow({
+  order,
+  onUpdate,
+}: {
+  order: MyOrder;
+  onUpdate: (id: number, patch: Partial<MyOrder>) => void;
+}) {
+  const o = order;
+  const hasOnchain = o.orderIdx !== undefined && hasVeilDeployment();
+  const [decryptArmed, setDecryptArmed] = useState(false);
+
+  const { data: batchStateTuple } = useReadContract({
+    chainId: sepolia.id,
+    address: VEIL_ADDRESS as `0x${string}`,
+    abi: veilAbi,
+    functionName: "getBatchState",
+    args: [BigInt(o.batchId)],
+    query: {
+      enabled: hasOnchain,
+      refetchInterval: 4000,
+    },
+  });
+
+  const batchState = batchStateTuple ? Number((batchStateTuple as readonly [bigint, bigint, number, number])[2]) : -1;
+  const cleared = batchState === 2;
+
+  const { data: fillHandle } = useReadContract({
+    chainId: sepolia.id,
+    address: VEIL_ADDRESS as `0x${string}`,
+    abi: veilAbi,
+    functionName: "getOrderFill",
+    args: hasOnchain && cleared && o.orderIdx !== undefined ? [BigInt(o.batchId), BigInt(o.orderIdx)] : undefined,
+    query: { enabled: hasOnchain && cleared && o.orderIdx !== undefined },
+  });
+
+  const decryptQuery = useUserDecrypt(
+    {
+      handles:
+        decryptArmed && fillHandle && fillHandle !== ZERO_HANDLE
+          ? [{ handle: fillHandle as `0x${string}`, contractAddress: VEIL_ADDRESS as `0x${string}` }]
+          : [],
+    },
+    { enabled: decryptArmed && !!fillHandle && fillHandle !== ZERO_HANDLE },
+  );
+
+  // Flip status to fillReady once we observe the batch is Cleared.
+  useEffect(() => {
+    if (!hasOnchain) return;
+    if (cleared && o.status === "sealed") {
+      onUpdate(o.id, { status: "fillReady" });
+    }
+  }, [hasOnchain, cleared, o.status, o.id, onUpdate]);
+
+  // Surface the decrypted value.
+  useEffect(() => {
+    if (!decryptArmed) return;
+    if (decryptQuery.data && fillHandle) {
+      const raw = decryptQuery.data[fillHandle as `0x${string}`];
+      const v = typeof raw === "bigint" ? Number(raw) : Number(raw ?? 0);
+      onUpdate(o.id, {
+        status: v > 0 ? "filled" : "nofill",
+        revealed: true,
+        fill: v,
+      });
+      setDecryptArmed(false);
+    } else if (decryptQuery.isError) {
+      onUpdate(o.id, { status: "fillReady" });
+      setDecryptArmed(false);
+    }
+  }, [decryptArmed, decryptQuery.data, decryptQuery.isError, fillHandle, o.id, onUpdate]);
+
+  function startDecrypt() {
+    onUpdate(o.id, { status: "decrypting" });
+    setDecryptArmed(true);
+  }
+
+  return (
+    <div className="veil-order-in grid grid-cols-[auto_auto_1fr_auto] gap-3 items-center px-3.5 py-3 border border-[var(--line)] rounded-[10px] bg-[color-mix(in_oklab,var(--bg3)_60%,transparent)]">
+      <span
+        className={[
+          "font-[var(--font-mono)] text-[11px] uppercase tracking-[0.08em] px-2 py-px rounded-[5px]",
+          o.side === "buy"
+            ? "text-[var(--buy)] bg-[color-mix(in_oklab,var(--buy)_14%,transparent)]"
+            : "text-[var(--sell)] bg-[color-mix(in_oklab,var(--sell)_14%,transparent)]",
+        ].join(" ")}
+      >
+        {o.side}
+      </span>
+      <span className="font-[var(--font-mono)] text-[13px] text-[var(--text)]">
+        ${o.price.toLocaleString()}
+      </span>
+      <span className="font-[var(--font-mono)] text-[13px] text-[var(--dim)]">
+        <Redacted revealed={o.revealed} len={4}>
+          {o.size}
+        </Redacted>
+      </span>
+      <span className="justify-self-end">
+        {o.status === "sealed" && (
+          <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--dim)] bg-[var(--bg3)]">
+            <Icon name="lock" size={11} />
+            sealed
+          </span>
+        )}
+        {o.status === "fillReady" && (
+          <button
+            type="button"
+            onClick={startDecrypt}
+            className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--accent)] border border-[color-mix(in_oklab,var(--accent)_45%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] hover:bg-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-colors"
+          >
+            <Icon name="key" size={11} />
+            decrypt fill
+          </button>
+        )}
+        {o.status === "decrypting" && (
+          <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--dim)] bg-[var(--bg3)]">
+            decrypting
+            <Cipher len={3} active className="text-[var(--accent)] ml-0.5" />
+          </span>
+        )}
+        {o.status === "filled" && (
+          <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--accent-ink)] bg-[var(--accent)]">
+            <Icon name="check" size={11} />
+            filled {o.fill}
+          </span>
+        )}
+        {o.status === "nofill" && (
+          <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--faint)] border border-[var(--line2)]">
+            no fill
+          </span>
+        )}
+      </span>
+    </div>
   );
 }
 
 function MyOrders({
   orders,
-  onDecrypt,
+  onUpdate,
 }: {
   orders: MyOrder[];
-  onDecrypt: (id: number) => void;
+  onUpdate: (id: number, patch: Partial<MyOrder>) => void;
 }) {
   if (!orders.length) {
     return (
@@ -218,64 +443,7 @@ function MyOrders({
       </div>
       <div className="flex flex-col gap-2">
         {orders.map((o) => (
-          <div
-            key={o.id}
-            className="veil-order-in grid grid-cols-[auto_auto_1fr_auto] gap-3 items-center px-3.5 py-3 border border-[var(--line)] rounded-[10px] bg-[color-mix(in_oklab,var(--bg3)_60%,transparent)]"
-          >
-            <span
-              className={[
-                "font-[var(--font-mono)] text-[11px] uppercase tracking-[0.08em] px-2 py-px rounded-[5px]",
-                o.side === "buy"
-                  ? "text-[var(--buy)] bg-[color-mix(in_oklab,var(--buy)_14%,transparent)]"
-                  : "text-[var(--sell)] bg-[color-mix(in_oklab,var(--sell)_14%,transparent)]",
-              ].join(" ")}
-            >
-              {o.side}
-            </span>
-            <span className="font-[var(--font-mono)] text-[13px] text-[var(--text)]">
-              ${o.price.toLocaleString()}
-            </span>
-            <span className="font-[var(--font-mono)] text-[13px] text-[var(--dim)]">
-              <Redacted revealed={o.revealed} len={4}>
-                {o.size}
-              </Redacted>
-            </span>
-            <span className="justify-self-end">
-              {o.status === "sealed" && (
-                <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--dim)] bg-[var(--bg3)]">
-                  <Icon name="lock" size={11} />
-                  sealed
-                </span>
-              )}
-              {o.status === "fillReady" && (
-                <button
-                  type="button"
-                  onClick={() => onDecrypt(o.id)}
-                  className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--accent)] border border-[color-mix(in_oklab,var(--accent)_45%,transparent)] bg-[color-mix(in_oklab,var(--accent)_10%,transparent)] hover:bg-[color-mix(in_oklab,var(--accent)_22%,transparent)] transition-colors"
-                >
-                  <Icon name="key" size={11} />
-                  decrypt fill
-                </button>
-              )}
-              {o.status === "decrypting" && (
-                <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--dim)] bg-[var(--bg3)]">
-                  decrypting
-                  <Cipher len={3} active className="text-[var(--accent)] ml-0.5" />
-                </span>
-              )}
-              {o.status === "filled" && (
-                <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--accent-ink)] bg-[var(--accent)]">
-                  <Icon name="check" size={11} />
-                  filled {o.fill}
-                </span>
-              )}
-              {o.status === "nofill" && (
-                <span className="inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2 py-1 rounded-md text-[var(--faint)] border border-[var(--line2)]">
-                  no fill
-                </span>
-              )}
-            </span>
-          </div>
+          <OrderRow key={o.id} order={o} onUpdate={onUpdate} />
         ))}
       </div>
     </div>
@@ -285,12 +453,38 @@ function MyOrders({
 function ConnectChip() {
   const { address, isConnected, chain } = useAccount();
   const { connect, connectors, isPending } = useConnect();
+  const { disconnect, isPending: disconnecting } = useDisconnect();
+  const chainId = useChainId();
+  const { switchChainAsync, isPending: switching } = useSwitchChain();
+  const wrongChain = isConnected && chainId !== sepolia.id;
   if (isConnected && address) {
     return (
-      <span className="inline-flex items-center gap-2 text-[13px] px-3.5 py-1.5 border border-[var(--line2)] rounded-lg text-[var(--text)]">
-        <Icon name="wallet" size={14} />
-        <span className="font-[var(--font-mono)]">{shortAddr(address)}</span>
-        {chain && <span className="text-[var(--dim)]">· {chain.name}</span>}
+      <span className="inline-flex items-center gap-1.5">
+        {wrongChain && (
+          <button
+            type="button"
+            onClick={() => switchChainAsync({ chainId: sepolia.id }).catch(() => {})}
+            disabled={switching}
+            className="inline-flex items-center gap-1.5 text-[12px] font-[var(--font-mono)] px-2.5 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--sell)_45%,transparent)] text-[var(--sell)] bg-[color-mix(in_oklab,var(--sell)_8%,transparent)] hover:bg-[color-mix(in_oklab,var(--sell)_16%,transparent)] transition-colors disabled:opacity-60"
+            title="Switch wallet network to Sepolia"
+          >
+            {switching ? "Switching…" : "Wrong network · switch"}
+          </button>
+        )}
+        <span className="inline-flex items-center gap-2 text-[13px] px-3.5 py-1.5 border border-[var(--line2)] rounded-lg text-[var(--text)]">
+          <Icon name="wallet" size={14} />
+          <span className="font-[var(--font-mono)]">{shortAddr(address)}</span>
+          {chain && <span className="text-[var(--dim)]">· {chain.name}</span>}
+        </span>
+        <button
+          type="button"
+          onClick={() => disconnect()}
+          disabled={disconnecting}
+          className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg border border-[var(--line2)] text-[var(--dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-60"
+          title="Disconnect wallet"
+        >
+          {disconnecting ? "…" : "Disconnect"}
+        </button>
       </span>
     );
   }
@@ -309,7 +503,7 @@ function ConnectChip() {
 }
 
 export function TradeApp() {
-  const life = useBatchLifecycle(true);
+  const life = useVeilLifecycle();
   const { phase, batchId, book, blocksLeft, orders: orderCount } = life;
   const [myOrders, setMyOrders] = useState<MyOrder[]>([]);
   const [toast, setToast] = useState<string | null>(null);
@@ -320,7 +514,14 @@ export function TradeApp() {
     setTimeout(() => setToast(null), 2400);
   }
 
-  function place(o: { side: "buy" | "sell"; tickIdx: number; price: number; size: number; txHash?: `0x${string}` }) {
+  function place(o: {
+    side: "buy" | "sell";
+    tickIdx: number;
+    price: number;
+    size: number;
+    txHash?: `0x${string}`;
+    orderIdx?: number;
+  }) {
     oidRef.current += 1;
     setMyOrders((prev) =>
       [
@@ -337,7 +538,16 @@ export function TradeApp() {
     flash("Sealed bid submitted to batch #" + batchId);
   }
 
+  const updateOrder = useCallback((id: number, patch: Partial<MyOrder>) => {
+    setMyOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
+  }, []);
+
+  // Demo-mode mock decryption: when there's no deployed contract, fake the
+  // post-clearing fill flow off the mock book.clearing. The on-chain flow
+  // lives inside <OrderRow /> and uses useUserDecrypt against the real
+  // fill handle.
   useEffect(() => {
+    if (hasVeilDeployment()) return;
     if (phase !== "cleared") return;
     setMyOrders((prev) =>
       prev.map((o) => {
@@ -349,19 +559,6 @@ export function TradeApp() {
       }),
     );
   }, [phase, batchId, book]);
-
-  function decrypt(id: number) {
-    setMyOrders((prev) =>
-      prev.map((o) => (o.id === id ? { ...o, status: "decrypting" } : o)),
-    );
-    setTimeout(() => {
-      setMyOrders((prev) =>
-        prev.map((o) =>
-          o.id === id ? { ...o, status: "filled", revealed: true, fill: o.fillAmt } : o,
-        ),
-      );
-    }, 1100);
-  }
 
   const statusTone = phase === "open" ? "buy" : phase === "cleared" ? "accent" : "warn";
 
@@ -435,7 +632,7 @@ export function TradeApp() {
 
         <aside className="flex flex-col gap-[18px]">
           <OrderTicket life={life} onPlace={place} />
-          <MyOrders orders={myOrders} onDecrypt={decrypt} />
+          <MyOrders orders={myOrders} onUpdate={updateOrder} />
         </aside>
       </div>
 

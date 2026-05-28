@@ -3,11 +3,16 @@
 import { ReactNode, useMemo } from "react";
 import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ZamaProvider, RelayerWeb, indexedDBStorage } from "@zama-fhe/react-sdk";
+import {
+  ZamaProvider,
+  RelayerWeb,
+  SepoliaConfig,
+  indexedDBStorage,
+} from "@zama-fhe/react-sdk";
 import { WagmiSigner } from "@/lib/zama-signer";
 import { sepolia } from "wagmi/chains";
 import { wagmiConfig } from "@/lib/wagmi";
-import { SEPOLIA_RPC, ZAMA_RELAYER_URL_SEPOLIA } from "@/lib/config";
+import { SEPOLIA_RPC_OVERRIDE, ZAMA_RELAYER_URL_OVERRIDE } from "@/lib/config";
 
 export function Providers({ children }: { children: ReactNode }) {
   const queryClient = useMemo(() => new QueryClient(), []);
@@ -18,8 +23,9 @@ export function Providers({ children }: { children: ReactNode }) {
         getChainId: () => signer.getChainId(),
         transports: {
           [sepolia.id]: {
-            relayerUrl: ZAMA_RELAYER_URL_SEPOLIA,
-            network: SEPOLIA_RPC,
+            ...SepoliaConfig,
+            ...(SEPOLIA_RPC_OVERRIDE ? { network: SEPOLIA_RPC_OVERRIDE } : {}),
+            ...(ZAMA_RELAYER_URL_OVERRIDE ? { relayerUrl: ZAMA_RELAYER_URL_OVERRIDE } : {}),
           },
         },
       }),

@@ -4,16 +4,32 @@ pragma solidity ^0.8.27;
 import {FHE, ebool, euint8, euint64, externalEbool, externalEuint8, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 
-/// @title VeilBatchAuction — sealed-bid uniform-price batch auction (Veil v0)
+/// @title VeilBatchAuction — sealed-bid uniform-price batch auction (Veil v1)
 /// @notice Single-asset CLOB primitive. Orders are encrypted (side, price tick, size).
 ///         Each batch runs for a fixed block window; per-tick aggregate buy/sell volumes
-///         are accumulated as ciphertexts. After close, anyone can request public
-///         decryption of the aggregates and submit the resulting clearing tick on-chain;
-///         per-user fills are then computed under FHE and remain user-decryptable only.
-/// @dev This is the v0 demo contract for the Zama Developer Program Season 3 submission.
-///      Pro-rata at the marginal tick and ERC-7984 settlement land in v1.
+///         are accumulated as ciphertexts. After close, the aggregates become publicly
+///         decryptable; any solver computes the uniform clearing tick + the two marginal
+///         pro-rata ratios off-chain and submits them on-chain. Per-user fills are then
+///         computed under FHE and remain user-decryptable only.
+///
+///         Fill rule:
+///           buy  with tick >  clearingTick → full size
+///           buy  with tick == clearingTick → size · marginalBuyBps  / 10_000
+///           buy  with tick <  clearingTick → 0
+///           sell with tick <  clearingTick → full size
+///           sell with tick == clearingTick → size · marginalSellBps / 10_000
+///           sell with tick >  clearingTick → 0
+///
+///         The three buckets per side are mutually exclusive so they sum without
+///         double-counting. The pro-rata divisor is 10_000 (basis points); the
+///         multiplier is plaintext, satisfying FHEVM's "no division by encrypted
+///         value" constraint.
+///
+/// @dev    ERC-7984 escrow + per-user settlement land in v2. This v1 still uses no
+///         tokens — it is the pure encrypted matching engine.
 contract VeilBatchAuction is ZamaEthereumConfig {
     uint8 public constant NUM_TICKS = 4;
+    uint16 public constant BPS_DENOM = 10_000;
 
     enum BatchState {
         Open,
@@ -34,6 +50,8 @@ contract VeilBatchAuction is ZamaEthereumConfig {
         uint256 closeBlock;
         BatchState state;
         uint8 clearingTick;
+        uint16 marginalBuyBps;
+        uint16 marginalSellBps;
         euint64[NUM_TICKS] buyVolume;
         euint64[NUM_TICKS] sellVolume;
     }
@@ -47,12 +65,18 @@ contract VeilBatchAuction is ZamaEthereumConfig {
     event OrderPlaced(uint256 indexed batchId, address indexed trader, uint256 orderIndex);
     event BatchClosed(uint256 indexed batchId);
     event AggregatesPublished(uint256 indexed batchId);
-    event BatchCleared(uint256 indexed batchId, uint8 clearingTick);
+    event BatchCleared(
+        uint256 indexed batchId,
+        uint8 clearingTick,
+        uint16 marginalBuyBps,
+        uint16 marginalSellBps
+    );
 
     error BatchNotOpen();
     error BatchNotClosed();
     error BatchAlreadyCleared();
     error InvalidClearingTick();
+    error InvalidMarginalBps();
 
     constructor(uint256 batchBlocks_) {
         require(batchBlocks_ > 0, "batchBlocks=0");
@@ -121,7 +145,8 @@ contract VeilBatchAuction is ZamaEthereumConfig {
         if (b.state != BatchState.Open || block.number < b.closeBlock) revert BatchNotOpen();
         b.state = BatchState.Closed;
 
-        // Make per-tick aggregates publicly decryptable so any solver can compute the clearing tick.
+        // Make per-tick aggregates publicly decryptable so any solver can compute
+        // the clearing tick and the two marginal pro-rata ratios.
         for (uint8 t = 0; t < NUM_TICKS; t++) {
             FHE.makePubliclyDecryptable(b.buyVolume[t]);
             FHE.makePubliclyDecryptable(b.sellVolume[t]);
@@ -133,40 +158,73 @@ contract VeilBatchAuction is ZamaEthereumConfig {
         _openNewBatch();
     }
 
-    /// @notice Submit the clearing tick computed off-chain from the published aggregates.
-    ///         Uniform-price rule (v0): clearingTick is the lowest tick T where
-    ///         sum_{t >= T} buyVol[t] >= sum_{t >= T} sellVol[t] (intuitively: the highest
-    ///         price buyers are willing to clear at).
-    ///         Per-user fill rule (v0, simplified — no pro-rata):
-    ///             buy filled if userTick >= clearingTick, sell filled if userTick <= clearingTick.
-    function submitClearing(uint256 batchId, uint8 clearingTick) external {
+    /// @notice Submit the clearing tick and the two marginal pro-rata ratios computed
+    ///         off-chain from the published aggregates.
+    /// @param batchId           The cleared batch
+    /// @param clearingTick      The uniform-price tick in [0, NUM_TICKS)
+    /// @param marginalBuyBps    Fraction of size each buy order at `clearingTick` receives,
+    ///                          expressed in basis points (0..10_000). Solver rounds DOWN
+    ///                          so that aggregate filled-size never exceeds matched volume.
+    /// @param marginalSellBps   Same, for sell orders at `clearingTick`.
+    function submitClearing(
+        uint256 batchId,
+        uint8 clearingTick,
+        uint16 marginalBuyBps,
+        uint16 marginalSellBps
+    ) external {
         if (clearingTick >= NUM_TICKS) revert InvalidClearingTick();
+        if (marginalBuyBps > BPS_DENOM || marginalSellBps > BPS_DENOM) revert InvalidMarginalBps();
+
         Batch storage b = _batches[batchId];
-        if (b.state != BatchState.Closed) revert BatchNotClosed();
         if (b.state == BatchState.Cleared) revert BatchAlreadyCleared();
+        if (b.state != BatchState.Closed) revert BatchNotClosed();
 
         b.clearingTick = clearingTick;
+        b.marginalBuyBps = marginalBuyBps;
+        b.marginalSellBps = marginalSellBps;
         b.state = BatchState.Cleared;
 
         euint8 clearingEnc = FHE.asEuint8(clearingTick);
+        euint64 zero = FHE.asEuint64(0);
+
         Order[] storage orders = _orders[batchId];
         uint256 n = orders.length;
         for (uint256 i = 0; i < n; i++) {
             Order storage o = orders[i];
-            // crossesBuy = isBuy && tickIdx >= clearingTick
-            // crossesSell = !isBuy && tickIdx <= clearingTick
-            ebool tickGe = FHE.ge(o.tickIdx, clearingEnc);
-            ebool tickLe = FHE.le(o.tickIdx, clearingEnc);
-            ebool crossesBuy = FHE.and(o.isBuy, tickGe);
-            ebool crossesSell = FHE.and(FHE.not(o.isBuy), tickLe);
-            ebool fills = FHE.or(crossesBuy, crossesSell);
 
-            o.filledSize = FHE.select(fills, o.size, FHE.asEuint64(0));
+            // Classify the order's tick relative to clearing.
+            ebool tickEq = FHE.eq(o.tickIdx, clearingEnc);
+            ebool tickGt = FHE.gt(o.tickIdx, clearingEnc);
+            ebool tickLt = FHE.lt(o.tickIdx, clearingEnc);
+
+            // Strictly-crossing orders fill in full:
+            //   buy above clearing OR sell below clearing.
+            ebool isBuyAbove = FHE.and(o.isBuy, tickGt);
+            ebool isSellBelow = FHE.and(FHE.not(o.isBuy), tickLt);
+            euint64 fullFill = FHE.select(FHE.or(isBuyAbove, isSellBelow), o.size, zero);
+
+            // Pro-rata at the marginal tick. Multiplier is a plaintext uint64 so
+            // FHE.mul(euint64, uint64) is legal; divisor is a plaintext uint64 so
+            // FHE.div(euint64, uint64) is legal (FHEVM forbids encrypted divisors).
+            // size · bps fits in euint64 for any size ≤ ~2^50 (BPS_DENOM = 10_000).
+            ebool isBuyAt = FHE.and(o.isBuy, tickEq);
+            ebool isSellAt = FHE.and(FHE.not(o.isBuy), tickEq);
+            euint64 buyMarginal = FHE.div(FHE.mul(o.size, uint64(marginalBuyBps)), uint64(BPS_DENOM));
+            euint64 sellMarginal = FHE.div(FHE.mul(o.size, uint64(marginalSellBps)), uint64(BPS_DENOM));
+            euint64 marginalFill = FHE.select(
+                isBuyAt,
+                buyMarginal,
+                FHE.select(isSellAt, sellMarginal, zero)
+            );
+
+            // fullFill and marginalFill are mutually exclusive: a given order is
+            // either above, at, or below clearing — never two at once.
+            o.filledSize = FHE.add(fullFill, marginalFill);
             FHE.allowThis(o.filledSize);
             FHE.allow(o.filledSize, o.trader);
         }
 
-        emit BatchCleared(batchId, clearingTick);
+        emit BatchCleared(batchId, clearingTick, marginalBuyBps, marginalSellBps);
     }
 
     function getBuyVolume(uint256 batchId, uint8 tick) external view returns (euint64) {
@@ -184,6 +242,16 @@ contract VeilBatchAuction is ZamaEthereumConfig {
     {
         Batch storage b = _batches[batchId];
         return (b.openBlock, b.closeBlock, b.state, b.clearingTick);
+    }
+
+    /// @notice Full clearing record for a batch — tick + both pro-rata ratios.
+    function getClearing(uint256 batchId)
+        external
+        view
+        returns (uint8 clearingTick, uint16 marginalBuyBps, uint16 marginalSellBps)
+    {
+        Batch storage b = _batches[batchId];
+        return (b.clearingTick, b.marginalBuyBps, b.marginalSellBps);
     }
 
     function getOrderCount(uint256 batchId) external view returns (uint256) {

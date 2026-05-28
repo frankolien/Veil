@@ -50,9 +50,29 @@ export const veilAbi = [
     inputs: [
       { name: "batchId", type: "uint256" },
       { name: "clearingTick", type: "uint8" },
+      { name: "marginalBuyBps", type: "uint16" },
+      { name: "marginalSellBps", type: "uint16" },
     ],
     outputs: [],
     stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getClearing",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [
+      { name: "clearingTick", type: "uint8" },
+      { name: "marginalBuyBps", type: "uint16" },
+      { name: "marginalSellBps", type: "uint16" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "BPS_DENOM",
+    inputs: [],
+    outputs: [{ type: "uint16" }],
+    stateMutability: "view",
   },
   {
     type: "function",
@@ -145,6 +165,8 @@ export const veilAbi = [
     inputs: [
       { name: "batchId", type: "uint256", indexed: true },
       { name: "clearingTick", type: "uint8", indexed: false },
+      { name: "marginalBuyBps", type: "uint16", indexed: false },
+      { name: "marginalSellBps", type: "uint16", indexed: false },
     ],
     anonymous: false,
   },

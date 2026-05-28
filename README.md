@@ -94,7 +94,7 @@ The entire on-chain CLOB surface:
 |---|---|---|
 | `placeOrder(sideExt, tickExt, sizeExt, proof)` | external · trader | Posts a single sealed bid into the current batch. Adds the encrypted size to per-tick aggregate volumes via `FHE.select(isBuy && tick==t, size, 0)` for every tick `t`. Stores the order's ciphertexts with `FHE.allowThis` + `FHE.allow(msg.sender)` so the trader can later decrypt their own fill. |
 | `closeBatch()` | external · permissionless | Idempotent once the close block is reached. Flips the batch to `Closed`, then `FHE.makePubliclyDecryptable(b.buyVolume[t])` + `sellVolume[t]` for every tick — any solver can now decrypt the aggregate ladder. Opens the next batch. |
-| `submitClearing(batchId, clearingTick)` | external · permissionless | Sets the uniform clearing tick computed off-chain from the public aggregates. Walks the encrypted orders, computes `fills = (isBuy && tick≥C) ∥ (!isBuy && tick≤C)`, and writes each user's `filledSize = FHE.select(fills, size, 0)`. Per-user fill ciphertexts are re-allowed to the trader. |
+| `submitClearing(batchId, tick, marginalBuyBps, marginalSellBps)` | external · permissionless | Sets the uniform clearing tick plus the two marginal pro-rata ratios computed off-chain from the public aggregates. Walks the encrypted orders: orders strictly inside the cross fill in full (`buy && tick>C` or `sell && tick<C`); orders **at** the marginal tick fill `size · bps / 10_000`. The plaintext divisor sidesteps FHEVM's no-encrypted-divisor restriction. Per-user fill ciphertexts are re-allowed to the trader. |
 | `getOrderFill(batchId, idx)` | view · trader (post-clearing) | Returns the trader's encrypted fill handle. Decryptable only by the original `msg.sender` via EIP-712, through the Zama relayer + 13-node threshold KMS. |
 
 Plus the per-tick aggregate readers (`getBuyVolume` / `getSellVolume`) for solvers, and the batch-state readers (`getBatchState` / `getOrderCount`) for any indexer.
@@ -197,7 +197,7 @@ zama_grant/
 ## Phase Status
 
 - ✅ **Week 1** — Monorepo bootstrapped · `VeilBatchAuction.sol` (v0) compiles & tests pass 4/4 on the FHEVM mock · Aurora-theme landing + trade-app frontend with real `useEncrypt` wiring · Mist (TokenOps disperse) scaffolded with `@tokenops/sdk/fhe-disperse/react`
-- ⬜ **Week 2** — v1 contract: pro-rata fills at the marginal tick · ERC-7984 escrow on `placeOrder` and refund on `closeBatch` for non-crossing orders
+- 🟡 **Week 2** — ✅ v1 contract: pro-rata at the marginal tick via `size · bps / 10_000` (basis-point encoding sidesteps the FHEVM no-encrypted-divisor restriction) · 10/10 tests pass on the FHEVM mock covering balanced / buy-pro-rata / sell-pro-rata / view + revert paths · frontend ABI synced · ⬜ ERC-7984 escrow on `placeOrder` + per-user `settle(batchId, orderIdx)` after clearing
 - ⬜ **Week 3** — ERC-7984 settlement wired through the trade app · Off-chain clearing solver bot · User-decryption of fills via EIP-712
 - ⬜ **Week 4** — Cross-margin lending vault with encrypted `euint64` health factor · Liquidation eligibility under FHE · Delegated decryption to permissionless keepers
 - ⬜ **Week 5** — Composition: CLOB ↔ lending vault cross-margining · Regulator-key compliance ACL via delegated decryption

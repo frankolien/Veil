@@ -1,8 +1,11 @@
 import { sepolia } from "wagmi/chains";
 import type { Address, Hex } from "viem";
 
-export const SEPOLIA_RPC =
-  process.env.NEXT_PUBLIC_SEPOLIA_RPC ?? "https://ethereum-sepolia-rpc.publicnode.com";
+// Optional overrides — leave blank to use Zama's canonical SepoliaConfig.
+export const SEPOLIA_RPC_OVERRIDE = process.env.NEXT_PUBLIC_SEPOLIA_RPC ?? "";
+export const ZAMA_RELAYER_URL_OVERRIDE = process.env.NEXT_PUBLIC_ZAMA_RELAYER_URL ?? "";
+
+export const SEPOLIA_RPC = SEPOLIA_RPC_OVERRIDE || "https://ethereum-sepolia-rpc.publicnode.com";
 
 /**
  * Confidential ERC-7984 token to disperse. Default points at Zama's cUSDC mock
@@ -12,9 +15,6 @@ export const SEPOLIA_RPC =
 export const DISPERSE_TOKEN = (process.env.NEXT_PUBLIC_DISPERSE_TOKEN ?? "") as Address | "";
 
 export const ACTIVE_CHAIN = sepolia;
-
-export const ZAMA_RELAYER_URL_SEPOLIA =
-  process.env.NEXT_PUBLIC_ZAMA_RELAYER_URL ?? "https://relayer.testnet.zama.cloud";
 
 export function shortAddr(a?: Address | Hex | string): string {
   if (!a) return "";
