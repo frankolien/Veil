@@ -74,15 +74,23 @@ The trader and the solver are the only honest participants the protocol asks for
 
 | Artifact | Address | Explorer |
 |---|---|---|
-| `VeilBatchAuction` contract | _not yet deployed — pending Hardhat vars setup_ | — |
-| Frontend (Veil) | _local dev: http://localhost:3000_ | — |
-| Frontend (Mist · TokenOps Bounty) | _local dev: http://localhost:3031_ | — |
+| `VeilBatchAuction` v1 (paper-trade CLOB) | `0xde5aC3708831BDd2DfDbF00614A2717f76eacb7e` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xde5aC3708831BDd2DfDbF00614A2717f76eacb7e) |
+| `VeilBatchAuctionV2` (CLOB with ERC-7984 escrow + settle) | `0x3Bb098C9b3c5F00ba0f64a046B2558546CcC0fB2` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x3Bb098C9b3c5F00ba0f64a046B2558546CcC0fB2) |
+| `VeilLendingVault` (encrypted health-factor lending) | `0xA114aE8E346b464C0C30d574c855e02Ab417992D` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xA114aE8E346b464C0C30d574c855e02Ab417992D) |
+| `VeilRegulatorRegistry` (delegated-decrypt audit grants) | `0xD9EEF8C06cB520e3A423FC1043fBbfb17D87d4A6` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xD9EEF8C06cB520e3A423FC1043fBbfb17D87d4A6) |
+| `vWETH` demo confidential token | `0xD7b35a8d7692B469d5C72D163e405C8c06177eCF` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0xD7b35a8d7692B469d5C72D163e405C8c06177eCF) |
+| `vUSDC` demo confidential token | `0x5cb2dEe62375f3F9315BFE79B1551A5001593Cb8` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x5cb2dEe62375f3F9315BFE79B1551A5001593Cb8) |
 | Confidential Wrappers Registry | inherited from Zama | [docs](https://docs.zama.org/protocol/protocol-apps/registry-contract) |
 
-> **Note (May 28, 2026):** the v0 contract is intentionally small — 4 price ticks,
-> no pro-rata at the marginal tick, no escrow on `placeOrder` yet. The mechanism
-> is end-to-end provable on the FHEVM mock; the v1 upgrade (pro-rata + ERC-7984
-> escrow) lands in week 2.
+### Frontend routes (local dev: http://localhost:3000)
+
+| Route | Purpose |
+|---|---|
+| `/` | Landing page · live encrypted-batch panel |
+| `/app` | v1 paper-trade CLOB · placeOrder only · no tokens move |
+| `/app/v2` | v2 CLOB · approve vWETH + vUSDC · sealed order with real escrow + settle |
+| `/app/vault` | Confidential lending vault · encrypted deposit / borrow / repay / withdraw · user-decrypt position |
+| `/app/regulator` | Audit registry · grant / revoke time-bounded regulator key |
 
 ---
 
@@ -140,26 +148,38 @@ The Solidity contracts **have not been audited.** They have a Hardhat test suite
 zama_grant/
 ├── contracts/                          # Hardhat + @fhevm/solidity workspace
 │   ├── contracts/
-│   │   └── VeilBatchAuction.sol        # v0 sealed-bid uniform-price CLOB
-│   ├── deploy/deploy.ts                # hardhat-deploy script
-│   ├── test/VeilBatchAuction.ts        # 4 tests, pass on the FHEVM mock
-│   ├── tasks/                          # hardhat CLI tasks
+│   │   ├── VeilBatchAuction.sol        # v1 sealed-bid uniform-price CLOB (paper trade)
+│   │   ├── VeilBatchAuctionV2.sol      # v2 CLOB with ERC-7984 escrow + per-user settle
+│   │   ├── VeilLendingVault.sol        # confidential lending: encrypted collateral/debt + FHE liquidation
+│   │   ├── VeilRegulatorRegistry.sol   # time-bounded delegated-decrypt audit grants
+│   │   ├── MockConfidentialToken.sol   # minimal ERC-7984 (mint + transfer + operator) for demo tokens
+│   │   └── IConfidentialToken.sol      # the ERC-7984 slice Veil binds against
+│   ├── deploy/                         # hardhat-deploy scripts: v1, v2, vault, registry
+│   ├── tasks/                          # task:veil / task:veil-v2 / task:vault / task:keeper
 │   └── hardhat.config.ts               # Sepolia + local FHEVM mock
-├── web/                                # Veil landing + trade app (Builder Track)
+├── web/                                # Veil landing + trade + vault + audit apps (Builder Track)
 │   ├── app/
 │   │   ├── page.tsx                    # Aurora-theme landing
-│   │   ├── app/page.tsx                # /app — live trading view
+│   │   ├── app/page.tsx                # /app — v1 paper trade
+│   │   ├── app/v2/page.tsx             # /app/v2 — v2 CLOB with escrow + settle
+│   │   ├── app/vault/page.tsx          # /app/vault — confidential lending
+│   │   ├── app/regulator/page.tsx      # /app/regulator — audit grant management
 │   │   ├── providers.tsx               # Wagmi + @zama-fhe/react-sdk providers
 │   │   └── globals.css                 # Aurora theme tokens + keyframes
 │   ├── components/veil/
-│   │   ├── primitives.tsx              # Cipher, Redacted, Pill, Wordmark, EthereumMark, Icon
+│   │   ├── primitives.tsx              # Cipher, Redacted, Pill, Wordmark, EthereumMark, Icon, Btn
 │   │   ├── orderbook.tsx               # useBatchLifecycle + OrderBook + BatchPanel
-│   │   ├── sections.tsx                # Nav / Hero / Mechanism / WhyFHE / Vault / Compliance / CTA / Footer
-│   │   └── trade-app.tsx               # /app view — real encrypted-order placement
+│   │   ├── sections.tsx                # landing sections
+│   │   ├── nav.tsx                     # shared app-route nav
+│   │   ├── trade-app.tsx               # /app v1 view
+│   │   ├── trade-app-v2.tsx            # /app/v2 v2 view
+│   │   ├── vault-app.tsx               # /app/vault view
+│   │   └── regulator-app.tsx           # /app/regulator view
 │   └── lib/
-│       ├── abi.ts                      # hand-curated VeilBatchAuction ABI
-│       ├── wagmi.ts                    # Sepolia config (injected connector)
-│       └── zama-signer.ts              # local WagmiSigner shim (drops broken subscribe)
+│       ├── abi.ts / abi-v2.ts / abi-vault.ts
+│       ├── use-veil-lifecycle.ts / use-v2-lifecycle.ts
+│       ├── config.ts                   # env-driven contract addresses
+│       └── zama-signer.ts              # local WagmiSigner shim
 └── tokenops/                           # Mist — confidential disperse (Special Bounty)
     ├── app/                            # Next.js 16 App Router
     ├── components/disperse-panel.tsx   # paste recipients → encrypt → disperse
@@ -183,25 +203,14 @@ zama_grant/
 
 ---
 
-## Deployed
-
-| Surface | Where | Status |
-|---|---|---|
-| `VeilBatchAuction` contract | Sepolia | ⬜ awaiting Hardhat vars (`MNEMONIC`, `INFURA_API_KEY`) |
-| Veil frontend | Vercel | ⬜ pending Sepolia deploy |
-| Mist (TokenOps disperse) | Vercel | ⬜ pending |
-| Mainnet | — | Phase 6+ (post-audit) |
-
----
-
 ## Phase Status
 
 - ✅ **Week 1** — Monorepo bootstrapped · `VeilBatchAuction.sol` (v0) compiles & tests pass 4/4 on the FHEVM mock · Aurora-theme landing + trade-app frontend with real `useEncrypt` wiring · Mist (TokenOps disperse) scaffolded with `@tokenops/sdk/fhe-disperse/react`
-- 🟡 **Week 2** — ✅ v1 contract: pro-rata at the marginal tick via `size · bps / 10_000` (basis-point encoding sidesteps the FHEVM no-encrypted-divisor restriction) · 10/10 tests pass on the FHEVM mock covering balanced / buy-pro-rata / sell-pro-rata / view + revert paths · frontend ABI synced · ⬜ ERC-7984 escrow on `placeOrder` + per-user `settle(batchId, orderIdx)` after clearing
-- ⬜ **Week 3** — ERC-7984 settlement wired through the trade app · Off-chain clearing solver bot · User-decryption of fills via EIP-712
-- ⬜ **Week 4** — Cross-margin lending vault with encrypted `euint64` health factor · Liquidation eligibility under FHE · Delegated decryption to permissionless keepers
-- ⬜ **Week 5** — Composition: CLOB ↔ lending vault cross-margining · Regulator-key compliance ACL via delegated decryption
-- ⬜ **Week 6** — Sepolia deploy · gas/latency benchmarks · 3-minute pitch video · Builder Track + TokenOps Special Bounty submissions
+- ✅ **Week 2** — v1 contract: pro-rata at the marginal tick via `size · bps / 10_000` (basis-point encoding sidesteps the FHEVM no-encrypted-divisor restriction) · 10/10 tests pass on the FHEVM mock · deployed to Sepolia · Hardhat task pack for the close/clear/decrypt-fill lifecycle
+- ✅ **Week 3** — `VeilBatchAuctionV2` adds ERC-7984 dual-token escrow on `placeOrder` and per-user `settle(batchId, orderIdx)` · `vWETH` + `vUSDC` demo confidential tokens deployed · `/app/v2` wired with operator-approval UX + reveal-balances + settle button
+- ✅ **Week 4** — `VeilLendingVault` with encrypted `euint64` collateral and debt · LTV gate computed homomorphically (`collateral × price × ltv / BPS_DENOM`) · over-borrow / over-withdraw silently clamp to 0 via `FHE.select` · `liquidate()` is single-tx (no decrypt round-trip) · `/app/vault` deposit / withdraw / borrow / repay UI
+- ✅ **Week 5** — `VeilRegulatorRegistry` for time-bounded delegated-decrypt grants · `/app/regulator` UI · consolidated keeper bot (`task:keeper:run`) closes/clears V2 batches and sweeps liquidations on a single loop
+- 🟡 **Week 6** — In progress: 3-minute demo video · final docs pass · Builder Track + TokenOps Special Bounty submissions
 
 Submission deadline: **2026-07-07 (23:59 AOE)**.
 
@@ -209,19 +218,19 @@ Submission deadline: **2026-07-07 (23:59 AOE)**.
 
 ## Build & Test
 
-Prerequisites: Node ≥ 20, npm ≥ 7. Hardhat vars (`MNEMONIC`, `INFURA_API_KEY`, optional `ETHERSCAN_API_KEY`) required only for Sepolia.
+Prerequisites: Node ≥ 20, npm ≥ 7. Hardhat vars (`MNEMONIC` or `PRIVATE_KEY`, `INFURA_API_KEY`, optional `ETHERSCAN_API_KEY`) required only for Sepolia.
 
 ```bash
 # 1. Contracts — FHEVM mock + Hardhat
 cd contracts
 npm install
 npx hardhat compile
-npx hardhat test test/VeilBatchAuction.ts     # 4 passing
+npx hardhat test                              # full suite on the FHEVM mock
 
 # 2. Veil frontend — http://localhost:3000
 cd ../web
 npm install
-cp .env.local.example .env.local              # set NEXT_PUBLIC_VEIL_ADDRESS post-deploy
+# .env.local already lists the deployed Sepolia addresses
 npm run dev                                   # webpack mode — see Known Notes
 
 # 3. Mist (TokenOps disperse) — http://localhost:3031
@@ -231,14 +240,33 @@ cp .env.local.example .env.local              # set NEXT_PUBLIC_DISPERSE_TOKEN t
 npm run dev
 ```
 
-To deploy `VeilBatchAuction` to Sepolia once your Hardhat vars are set:
+### Sepolia lifecycle tasks
 
 ```bash
 cd contracts
-npx hardhat vars set MNEMONIC
+
+# Inspect & drive a v2 batch
+npx hardhat --network sepolia task:veil-v2:status
+npx hardhat --network sepolia task:veil-v2:close
+npx hardhat --network sepolia task:veil-v2:clear      # decrypts aggregates + submits clearing
+
+# Mint demo tokens to a trader
+npx hardhat --network sepolia task:veil-v2:faucet --to 0x… --base 1000 --quote 5000000
+
+# Seed the lending vault with vUSDC liquidity (deployer signs)
+npx hardhat --network sepolia task:vault:seed --amount 10000000
+
+# Keeper bot: closes/clears v2 batches + sweeps liquidations on a single loop
+npx hardhat --network sepolia task:keeper:run --liquidate true
+```
+
+To re-deploy a fresh ladder of contracts:
+
+```bash
+cd contracts
+npx hardhat vars set PRIVATE_KEY
 npx hardhat vars set INFURA_API_KEY
-npx hardhat deploy --network sepolia
-npx hardhat verify --network sepolia <CONTRACT_ADDRESS> 10
+npx hardhat --network sepolia deploy
 ```
 
 ---

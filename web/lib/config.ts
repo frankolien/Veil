@@ -12,6 +12,12 @@ export const SEPOLIA_RPC = SEPOLIA_RPC_OVERRIDE || "https://ethereum-sepolia-rpc
 
 export const VEIL_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_ADDRESS ?? "") as Address | "";
 
+export const VEIL_V2_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_V2_ADDRESS ?? "") as Address | "";
+export const VEIL_BASE_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_BASE_ADDRESS ?? "") as Address | "";
+export const VEIL_QUOTE_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_QUOTE_ADDRESS ?? "") as Address | "";
+export const VEIL_VAULT_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_VAULT_ADDRESS ?? "") as Address | "";
+export const VEIL_REGULATOR_ADDRESS = (process.env.NEXT_PUBLIC_VEIL_REGULATOR_ADDRESS ?? "") as Address | "";
+
 export const ACTIVE_CHAIN = sepolia;
 
 export function shortAddr(a?: Address | Hex | string): string {
@@ -21,4 +27,24 @@ export function shortAddr(a?: Address | Hex | string): string {
 
 export function hasVeilDeployment(): boolean {
   return Boolean(VEIL_ADDRESS) && VEIL_ADDRESS.startsWith("0x") && VEIL_ADDRESS.length === 42;
+}
+
+export function hasVeilV2Deployment(): boolean {
+  return (
+    Boolean(VEIL_V2_ADDRESS) &&
+    VEIL_V2_ADDRESS.startsWith("0x") &&
+    VEIL_V2_ADDRESS.length === 42 &&
+    Boolean(VEIL_BASE_ADDRESS) &&
+    Boolean(VEIL_QUOTE_ADDRESS)
+  );
+}
+
+export function hasVaultDeployment(): boolean {
+  return Boolean(VEIL_VAULT_ADDRESS) && VEIL_VAULT_ADDRESS.startsWith("0x") && VEIL_VAULT_ADDRESS.length === 42;
+}
+
+export function hasRegulatorDeployment(): boolean {
+  return (
+    Boolean(VEIL_REGULATOR_ADDRESS) && VEIL_REGULATOR_ADDRESS.startsWith("0x") && VEIL_REGULATOR_ADDRESS.length === 42
+  );
 }

@@ -1,0 +1,177 @@
+export const veilV2Abi = [
+  { type: "function", name: "NUM_TICKS", inputs: [], outputs: [{ type: "uint8" }], stateMutability: "view" },
+  { type: "function", name: "BPS_DENOM", inputs: [], outputs: [{ type: "uint16" }], stateMutability: "view" },
+  { type: "function", name: "batchBlocks", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "currentBatchId", inputs: [], outputs: [{ type: "uint256" }], stateMutability: "view" },
+  { type: "function", name: "baseToken", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
+  { type: "function", name: "quoteToken", inputs: [], outputs: [{ type: "address" }], stateMutability: "view" },
+  { type: "function", name: "tickPrice0", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
+  { type: "function", name: "tickStep", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
+  {
+    type: "function",
+    name: "tickPrice",
+    inputs: [{ name: "tick", type: "uint8" }],
+    outputs: [{ type: "uint64" }],
+    stateMutability: "view",
+  },
+  { type: "function", name: "maxTickPrice", inputs: [], outputs: [{ type: "uint64" }], stateMutability: "view" },
+  {
+    type: "function",
+    name: "placeOrder",
+    inputs: [
+      { name: "sideExt", type: "bytes32" },
+      { name: "tickExt", type: "bytes32" },
+      { name: "sizeExt", type: "bytes32" },
+      { name: "proof", type: "bytes" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  { type: "function", name: "closeBatch", inputs: [], outputs: [], stateMutability: "nonpayable" },
+  {
+    type: "function",
+    name: "submitClearing",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "clearingTick", type: "uint8" },
+      { name: "marginalBuyBps", type: "uint16" },
+      { name: "marginalSellBps", type: "uint16" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "settle",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "orderIdx", type: "uint256" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "getBatchState",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [
+      { name: "openBlock", type: "uint256" },
+      { name: "closeBlock", type: "uint256" },
+      { name: "state", type: "uint8" },
+      { name: "clearingTick", type: "uint8" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getClearing",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [
+      { name: "clearingTick", type: "uint8" },
+      { name: "marginalBuyBps", type: "uint16" },
+      { name: "marginalSellBps", type: "uint16" },
+    ],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getOrderCount",
+    inputs: [{ name: "batchId", type: "uint256" }],
+    outputs: [{ type: "uint256" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getOrderTrader",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "idx", type: "uint256" },
+    ],
+    outputs: [{ type: "address" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "getOrderFill",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "idx", type: "uint256" },
+    ],
+    outputs: [{ type: "bytes32" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "isOrderSettled",
+    inputs: [
+      { name: "batchId", type: "uint256" },
+      { name: "idx", type: "uint256" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "event",
+    name: "OrderPlaced",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "trader", type: "address", indexed: true },
+      { name: "orderIndex", type: "uint256", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "BatchCleared",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "clearingTick", type: "uint8", indexed: false },
+      { name: "marginalBuyBps", type: "uint16", indexed: false },
+      { name: "marginalSellBps", type: "uint16", indexed: false },
+    ],
+    anonymous: false,
+  },
+  {
+    type: "event",
+    name: "OrderSettled",
+    inputs: [
+      { name: "batchId", type: "uint256", indexed: true },
+      { name: "orderIndex", type: "uint256", indexed: true },
+      { name: "trader", type: "address", indexed: true },
+    ],
+    anonymous: false,
+  },
+] as const;
+
+export const confidentialTokenAbi = [
+  { type: "function", name: "name", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
+  { type: "function", name: "symbol", inputs: [], outputs: [{ type: "string" }], stateMutability: "view" },
+  { type: "function", name: "decimals", inputs: [], outputs: [{ type: "uint8" }], stateMutability: "view" },
+  {
+    type: "function",
+    name: "setOperator",
+    inputs: [
+      { name: "operator", type: "address" },
+      { name: "until", type: "uint48" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "isOperator",
+    inputs: [
+      { name: "holder", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+  },
+  {
+    type: "function",
+    name: "confidentialBalanceOf",
+    inputs: [{ name: "account", type: "address" }],
+    outputs: [{ type: "bytes32" }],
+    stateMutability: "view",
+  },
+] as const;

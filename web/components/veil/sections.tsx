@@ -49,7 +49,17 @@ export function Nav() {
           ))}
         </div>
         <div className="flex items-center gap-3">
-          <a href="/app">
+          <a href="/app/vault" className="hidden md:inline-block">
+            <Btn variant="ghost" size="sm">
+              Vault
+            </Btn>
+          </a>
+          <a href="/app/regulator" className="hidden md:inline-block">
+            <Btn variant="ghost" size="sm">
+              Audit
+            </Btn>
+          </a>
+          <a href="/app/v2">
             <Btn variant="outline" size="sm">
               <Icon name="wallet" size={15} />
               Launch app
@@ -80,7 +90,7 @@ export function Hero() {
             {HERO_COPY.sub}
           </p>
           <div className="flex gap-3.5 mt-[34px] flex-wrap">
-            <a href="/app">
+            <a href="/app/v2">
               <Btn variant="primary" size="lg">
                 {HERO_COPY.ctaPrimary}
                 <Icon name="arrow" size={18} />
@@ -560,7 +570,7 @@ export function CTA() {
           Because no one can.
         </h2>
         <div className="relative flex gap-3.5 justify-center flex-wrap">
-          <a href="/app">
+          <a href="/app/v2">
             <Btn variant="primary" size="lg">
               Launch app
               <Icon name="arrow" size={18} />

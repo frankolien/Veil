@@ -13,6 +13,8 @@ import "./tasks/accounts";
 import "./tasks/FHECounter";
 import "./tasks/Veil";
 import "./tasks/VeilV2";
+import "./tasks/Vault";
+import "./tasks/Keeper";
 
 // Run 'npx hardhat vars setup' to see the list of variables that need to be set.
 //
