@@ -171,3 +171,42 @@ Mitigation candidates:
 **Consequences.** Until decided, the public set of Veil traders per batch is observable. Any user who cares should use a wallet they have not associated with a public identity.
 
 **Status.** Proposed (pending decision).
+
+---
+
+## ADR-012 — Demo tokens (euint64) over real Wrappers Registry tokens (euint128)
+
+**Context.** V2 needs to escrow real value on `placeOrder`. The Confidential Wrappers Registry hosts `cWETH` (18 decimals) and `cUSDC` (6 decimals) on Sepolia. Our V2 contract escrows the buy side at `size × maxTickPrice` in quote-atoms; with 18-decimal `cWETH` and realistic prices the intermediate overflows `euint64` (max ≈ 1.8 × 10^19).
+
+Three options were examined:
+
+- **(a) Deploy our own 6-decimal demo tokens.** Keep `euint64` throughout.
+- **(b) Switch the contract to `euint128`.** Use real `cWETH` / `cUSDC` with scaled prices.
+- **(c) Cap order sizes brutally.** Force `size` into a usable euint64 range against real 18-decimal tokens.
+
+Cost data drawn directly from the protocol's [`HCULimit.sol`](../contracts/node_modules/@fhevm/host-contracts/contracts/HCULimit.sol), per-op HCU:
+
+| Op           | euint64   | euint128  | Ratio  |
+|--------------|-----------|-----------|--------|
+| `add` (enc)  | 162,000   | 259,000   | 1.60×  |
+| `mul` (scalar)| 365,000   | 696,000   | 1.91×  |
+| `div` (scalar)| 715,000   | 1,225,000 | 1.71×  |
+| `eq` (scalar) | 83,000   | 117,000   | 1.41×  |
+| `select`     | 55,000    | 57,000    | 1.04×  |
+
+Per-tx budgets: `MAX_HCU_PER_TX = 20M`, `MAX_DEPTH_PER_TX = 5M`.
+
+`submitClearing` per-order body: ≈ 3M HCU at `euint64`, ≈ 5M HCU at `euint128`. The 20M ceiling translates to **~6 orders/tx at euint64, ~4 orders/tx at euint128** — a meaningful regression for a demo where we want multiple traders to converge in a single batch.
+
+Option (c) is unusable. With real 18-decimal `cWETH`, max `size` at `euint64` = `1.8 × 10^19 / maxPrice`. At `maxPrice = 3420 × 10^6`, that bounds `size` to ~4.5 nano-WETH ≈ $0.00001 — meaningless.
+
+**Decision.** v1 deploys (a): two `MockConfidentialToken` instances on Sepolia, 0 decimals each, named "Veil Demo WETH" (`vWETH`) and "Veil Demo USDC" (`vUSDC`). `tickPrice0 = 3400`, `tickStep = 10` → tick grid `[3400, 3410, 3420, 3430]`. Sizes are whole units; user types "100" and the encrypted `size` is literally 100.
+
+**Consequences.**
+- V2 contract stays on `euint64` throughout; no refactor.
+- Per-batch order ceiling: ~6 orders/tx via `submitClearing` (well within demo needs).
+- HCU headroom preserved for v3's lending vault, which has comparable per-account FHE cost.
+- The demo trades fake tokens, not real `cWETH` / `cUSDC`. The architectural compatibility with the Wrappers Registry is preserved (the contract takes `IConfidentialToken` addresses in the constructor); the unit math just has to widen for real tokens.
+- Faucet: permissionless `mint` on `MockConfidentialToken`, exposed via `task:veil-v2:faucet --to <address>`. Acceptable for a public Sepolia demo; not for any real value movement.
+
+**Status.** Accepted for v1. Re-opened for v2 when (a) gas costs warrant `euint128`, or (b) Zama ships a width-flexible op variant that lifts the cost penalty.

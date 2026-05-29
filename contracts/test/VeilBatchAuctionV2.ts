@@ -23,8 +23,8 @@ const OPERATOR_TTL = 60 * 60 * 24;
 
 async function deployFixture() {
   const tokenFactory = (await ethers.getContractFactory("MockConfidentialToken")) as MockConfidentialToken__factory;
-  const base = (await tokenFactory.deploy()) as MockConfidentialToken;
-  const quote = (await tokenFactory.deploy()) as MockConfidentialToken;
+  const base = (await tokenFactory.deploy("Veil Base", "vBASE", 6)) as MockConfidentialToken;
+  const quote = (await tokenFactory.deploy("Veil Quote", "vQUOTE", 6)) as MockConfidentialToken;
   const baseAddress = await base.getAddress();
   const quoteAddress = await quote.getAddress();
 

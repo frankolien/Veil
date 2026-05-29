@@ -12,6 +12,7 @@ import "solidity-coverage";
 import "./tasks/accounts";
 import "./tasks/FHECounter";
 import "./tasks/Veil";
+import "./tasks/VeilV2";
 
 // Run 'npx hardhat vars setup' to see the list of variables that need to be set.
 //

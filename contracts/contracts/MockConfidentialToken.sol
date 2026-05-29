@@ -5,12 +5,24 @@ import {FHE, euint64, externalEuint64} from "@fhevm/solidity/lib/FHE.sol";
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {IConfidentialToken} from "./IConfidentialToken.sol";
 
-/// @notice Test-only ERC-7984 mock. Implements just the surface Veil binds
-///         against — no callbacks, no encrypted disclosure, no proof-bearing
-///         overloads. Mint is permissionless to simplify fixtures.
+/// @notice Minimal ERC-7984 implementation Veil binds against. No callbacks,
+///         no encrypted disclosure, no proof-bearing overloads. Permissionless
+///         mint — fine for testing fixtures and a Sepolia demo deploy where
+///         anyone may want demo balances. Production deployments would swap
+///         in registry-listed cWETH / cUSDC and pay for euint128 throughout.
 contract MockConfidentialToken is IConfidentialToken, ZamaEthereumConfig {
+    string public name;
+    string public symbol;
+    uint8 public immutable decimals;
+
     mapping(address => euint64) private _balances;
     mapping(address => mapping(address => uint48)) private _operatorUntil;
+
+    constructor(string memory name_, string memory symbol_, uint8 decimals_) {
+        name = name_;
+        symbol = symbol_;
+        decimals = decimals_;
+    }
 
     function mint(address to, externalEuint64 amount, bytes calldata proof) external {
         euint64 delta = FHE.fromExternal(amount, proof);
