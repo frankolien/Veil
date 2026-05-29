@@ -2,16 +2,7 @@ import { FhevmType } from "@fhevm/hardhat-plugin";
 import { task } from "hardhat/config";
 import type { TaskArguments } from "hardhat/types";
 
-/**
- * Veil batch-auction lifecycle tasks.
- *
- * Typical Sepolia flow (assumes a deployment exists at deployments/sepolia/VeilBatchAuction.json):
- *
- *   npx hardhat --network sepolia task:veil:status
- *   npx hardhat --network sepolia task:veil:close          # once closeBlock is reached
- *   npx hardhat --network sepolia task:veil:clear          # decrypt aggregates + submitClearing
- *   npx hardhat --network sepolia task:veil:my-fill --batch 1 --idx 0
- */
+// Sepolia flow: status → close → clear → my-fill. See docs/05-roadmap.md.
 
 const ZERO_HANDLE = "0x0000000000000000000000000000000000000000000000000000000000000000";
 
@@ -78,20 +69,7 @@ task("task:veil:close", "Calls closeBatch() on the current batch (if its closeBl
     console.log(`tx:${tx.hash} status=${receipt?.status}`);
   });
 
-/**
- * Computes the uniform-price clearing tick + the two pro-rata ratios.
- *
- *   Demand at tick c   = sum of buyVol[t] for t >= c   (buyers with price >= c fill)
- *   Supply at tick c   = sum of sellVol[t] for t <= c  (sellers with price <= c fill)
- *   Matched(c)         = min(Demand(c), Supply(c))
- *
- * Pick the c that maximises matched volume. At c, buys with tick>c fill in full,
- * sells with tick<c fill in full, and the side with excess at the marginal tick
- * gets pro-rata'd down. The other side at the marginal tick fills in full.
- *
- * The bps multipliers are rounded DOWN so aggregate fills never exceed the
- * matched volume.
- */
+// See docs/02-algorithm.md. Off-chain helper; bps round down.
 export function computeClearing(buyVol: bigint[], sellVol: bigint[]) {
   const NUM = buyVol.length;
   if (NUM !== sellVol.length) throw new Error("buyVol/sellVol length mismatch");

@@ -10,17 +10,6 @@ import type { Book, Lifecycle, Phase } from "@/components/veil/orderbook";
 const NUM_TICKS = 4;
 const TICK_PRICES = [3418, 3419, 3420, 3421];
 
-/**
- * On-chain Veil batch lifecycle.
- *
- * Reads currentBatchId, the per-batch state record, order count, and (once
- * cleared) the clearing tick. Polls every block via wagmi's `useBlockNumber`.
- *
- * The orderbook visual still shows placeholder volumes — the per-tick
- * aggregates are encrypted on-chain and only become publicly decryptable
- * after `closeBatch()`. Decrypting them from the browser is a future iteration;
- * for now the trader can see batch state, blocks left, and which tick cleared.
- */
 export function useVeilLifecycle(): Lifecycle {
   const { data: blockNumber } = useBlockNumber({ watch: true, chainId: sepolia.id });
 

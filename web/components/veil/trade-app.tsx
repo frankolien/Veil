@@ -77,7 +77,6 @@ function OrderTicket({
       }
     }
     if (!deployed) {
-      // Demo mode: simulate the flow without on-chain interaction
       setStage("encrypting");
       await new Promise((r) => setTimeout(r, 1200));
       setStage("submitting");
@@ -112,19 +111,12 @@ function OrderTicket({
           toHex(result.handles[2]),
           toHex(result.inputProof),
         ],
-        // Skip viem's auto-estimate. FHEVM precompiles confuse eth_estimateGas
-        // into returning a number above Sepolia's block gas limit, which then
-        // makes the wallet's RPC reject the submission ("gas limit too high").
-        // Real usage for the 4-tick aggregation loop is ~3–6M.
+        // eth_estimateGas overshoots block-limit on FHE precompiles; ADR-009.
         gas: 15_000_000n,
       });
       setStage("confirming");
       const receipt = await waitForTransactionReceipt(config, { hash: txHash });
       if (receipt.status !== "success") {
-        // Most common cause on Sepolia: batch's closeBlock was reached between
-        // when the UI computed `phase === "open"` and when the tx mined. The
-        // contract reverts with BatchNotOpen() — no return-data string in
-        // custom errors, so we can only say "reverted".
         throw new Error(
           `placeOrder reverted on-chain (status=${receipt.status}). ` +
             `The batch may have closed before your tx landed — refresh and retry.`,
@@ -145,7 +137,7 @@ function OrderTicket({
         orderIdx,
       });
     } catch (err) {
-      // Zama SDK wraps the real error in `cause`; unwrap so the UI shows it.
+      // Zama SDK wraps the real error in `cause`.
       const chain: string[] = [];
       let cur: unknown = err;
       while (cur && chain.length < 5) {
@@ -273,14 +265,6 @@ function OrderTicket({
   );
 }
 
-/**
- * One row inside MyOrders. Per order it reads the on-chain batch state for the
- * order's batchId; once that batch is Cleared, it reads the fill handle and
- * shows a "decrypt fill" button. Clicking the button enables a useUserDecrypt
- * query against the fill handle — the relayer asks the threshold KMS for a
- * user-share decryption, returns the clear value, and we show "filled X" or
- * "no fill" (value == 0).
- */
 function OrderRow({
   order,
   onUpdate,
@@ -326,7 +310,6 @@ function OrderRow({
     { enabled: decryptArmed && !!fillHandle && fillHandle !== ZERO_HANDLE },
   );
 
-  // Flip status to fillReady once we observe the batch is Cleared.
   useEffect(() => {
     if (!hasOnchain) return;
     if (cleared && o.status === "sealed") {
@@ -334,7 +317,6 @@ function OrderRow({
     }
   }, [hasOnchain, cleared, o.status, o.id, onUpdate]);
 
-  // Surface the decrypted value.
   useEffect(() => {
     if (!decryptArmed) return;
     if (decryptQuery.data && fillHandle) {
@@ -542,10 +524,7 @@ export function TradeApp() {
     setMyOrders((prev) => prev.map((o) => (o.id === id ? { ...o, ...patch } : o)));
   }, []);
 
-  // Demo-mode mock decryption: when there's no deployed contract, fake the
-  // post-clearing fill flow off the mock book.clearing. The on-chain flow
-  // lives inside <OrderRow /> and uses useUserDecrypt against the real
-  // fill handle.
+  // Mock-mode fill flow; the real flow lives in <OrderRow />.
   useEffect(() => {
     if (hasVeilDeployment()) return;
     if (phase !== "cleared") return;
