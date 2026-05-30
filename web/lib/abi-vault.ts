@@ -80,6 +80,26 @@ export const veilLendingVaultAbi = [
     stateMutability: "view",
   },
   {
+    type: "function",
+    name: "setOperator",
+    inputs: [
+      { name: "operator", type: "address" },
+      { name: "until", type: "uint48" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "isOperator",
+    inputs: [
+      { name: "holder", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ type: "bool" }],
+    stateMutability: "view",
+  },
+  {
     type: "event",
     name: "PositionOpened",
     inputs: [{ name: "user", type: "address", indexed: true }],

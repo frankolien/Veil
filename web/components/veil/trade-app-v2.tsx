@@ -18,12 +18,16 @@ import { bytesToHex, parseEventLogs, type Address } from "viem";
 import { OrderBook, type Lifecycle } from "./orderbook";
 import { Btn, Cipher, EthereumMark, Icon, Pill, Redacted, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
+import { LastClearedPanel } from "./last-cleared";
 import { veilV2Abi, confidentialTokenAbi } from "@/lib/abi-v2";
+import { veilLendingVaultAbi } from "@/lib/abi-vault";
 import {
   VEIL_V2_ADDRESS,
   VEIL_BASE_ADDRESS,
   VEIL_QUOTE_ADDRESS,
+  VEIL_VAULT_ADDRESS,
   hasVeilV2Deployment,
+  hasVaultDeployment,
   shortAddr,
 } from "@/lib/config";
 import { useV2Lifecycle } from "@/lib/use-v2-lifecycle";
@@ -171,6 +175,71 @@ function OperatorBar({
   );
 }
 
+function VaultMarginToggle({
+  enabled,
+  onChange,
+  vaultOperator,
+  onVaultOperatorChanged,
+}: {
+  enabled: boolean;
+  onChange: (v: boolean) => void;
+  vaultOperator: boolean;
+  onVaultOperatorChanged: () => void;
+}) {
+  const config = useConfig();
+  const { writeContractAsync } = useWriteContract();
+  const [busy, setBusy] = useState(false);
+
+  async function approveVault() {
+    if (busy || vaultOperator) return;
+    setBusy(true);
+    try {
+      const until = Math.floor(Date.now() / 1000) + OPERATOR_TTL_SECS;
+      const hash = await writeContractAsync({
+        chainId: sepolia.id,
+        address: VEIL_VAULT_ADDRESS as Address,
+        abi: veilLendingVaultAbi,
+        functionName: "setOperator",
+        args: [VEIL_V2_ADDRESS as Address, until],
+      });
+      await waitForTransactionReceipt(config, { hash });
+      onVaultOperatorChanged();
+    } catch (err) {
+      console.error("vault setOperator failed", err);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex items-center gap-3 px-3.5 py-3 bg-[var(--bg3)] rounded-[9px] border border-[var(--line)]">
+      <label className="flex items-center gap-2 cursor-pointer text-[12px] text-[var(--text)] font-[var(--font-mono)]">
+        <input
+          type="checkbox"
+          checked={enabled}
+          onChange={(e) => onChange(e.target.checked)}
+          className="accent-[var(--accent)]"
+        />
+        Use vault collateral
+      </label>
+      {enabled && !vaultOperator && (
+        <button
+          type="button"
+          onClick={approveVault}
+          disabled={busy}
+          className="ml-auto inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2.5 py-1 rounded-md text-[var(--text)] border border-[var(--line2)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-60"
+        >
+          <Icon name="lock" size={11} />
+          {busy ? "Signing…" : "Approve vault"}
+        </button>
+      )}
+      {enabled && vaultOperator && (
+        <span className="ml-auto text-[11px] font-[var(--font-mono)] text-[var(--accent)]">vault approved</span>
+      )}
+    </div>
+  );
+}
+
 function OrderTicket({
   life,
   baseApproved,
@@ -193,6 +262,7 @@ function OrderTicket({
   const [side, setSide] = useState<"buy" | "sell">("buy");
   const [tickIdx, setTickIdx] = useState(2);
   const [size, setSize] = useState("100");
+  const [useVault, setUseVault] = useState(false);
   const [stage, setStage] = useState<"idle" | "encrypting" | "submitting" | "confirming">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -201,12 +271,23 @@ function OrderTicket({
   const config = useConfig();
   const { switchChainAsync, isPending: switching } = useSwitchChain();
   const deployed = hasVeilV2Deployment();
+  const vaultLive = hasVaultDeployment();
   const encrypt = useEncrypt();
   const { writeContractAsync } = useWriteContract();
 
+  const { data: vaultOperator, refetch: refetchVaultOp } = useReadContract({
+    chainId: sepolia.id,
+    address: VEIL_VAULT_ADDRESS as Address,
+    abi: veilLendingVaultAbi,
+    functionName: "isOperator",
+    args: address ? [address, VEIL_V2_ADDRESS as Address] : undefined,
+    query: { enabled: !!address && vaultLive, refetchInterval: 6000 },
+  });
+
   const open = phase === "open";
   const onSepolia = chainId === sepolia.id;
-  const requiredApproved = side === "buy" ? quoteApproved : baseApproved;
+  const composeSell = side === "sell" && useVault && vaultLive;
+  const requiredApproved = composeSell ? !!vaultOperator : side === "buy" ? quoteApproved : baseApproved;
   const busy = stage !== "idle" || switching;
 
   async function submit(e: React.FormEvent) {
@@ -215,7 +296,11 @@ function OrderTicket({
     setErrorMsg(null);
 
     if (!requiredApproved) {
-      setErrorMsg(`Approve ${side === "buy" ? "vUSDC" : "vWETH"} first (top of page).`);
+      setErrorMsg(
+        composeSell
+          ? "Approve Veil to spend your vault collateral first."
+          : `Approve ${side === "buy" ? "vUSDC" : "vWETH"} first (top of page).`,
+      );
       return;
     }
 
@@ -242,19 +327,34 @@ function OrderTicket({
       setStage("submitting");
       const toHex = (v: Uint8Array | `0x${string}`) =>
         typeof v === "string" ? v : bytesToHex(v);
-      const txHash = await writeContractAsync({
-        chainId: sepolia.id,
-        address: VEIL_V2_ADDRESS as Address,
-        abi: veilV2Abi,
-        functionName: "placeOrder",
-        args: [
-          toHex(result.handles[0]),
-          toHex(result.handles[1]),
-          toHex(result.handles[2]),
-          toHex(result.inputProof),
-        ],
-        gas: 18_000_000n,
-      });
+      const txHash = composeSell
+        ? await writeContractAsync({
+            chainId: sepolia.id,
+            address: VEIL_V2_ADDRESS as Address,
+            abi: veilV2Abi,
+            functionName: "placeOrderFromVault",
+            args: [
+              toHex(result.handles[0]),
+              toHex(result.handles[1]),
+              toHex(result.handles[2]),
+              toHex(result.inputProof),
+              VEIL_VAULT_ADDRESS as Address,
+            ],
+            gas: 20_000_000n,
+          })
+        : await writeContractAsync({
+            chainId: sepolia.id,
+            address: VEIL_V2_ADDRESS as Address,
+            abi: veilV2Abi,
+            functionName: "placeOrder",
+            args: [
+              toHex(result.handles[0]),
+              toHex(result.handles[1]),
+              toHex(result.handles[2]),
+              toHex(result.inputProof),
+            ],
+            gas: 18_000_000n,
+          });
       setStage("confirming");
       const receipt = await waitForTransactionReceipt(config, { hash: txHash });
       if (receipt.status !== "success") {
@@ -350,11 +450,21 @@ function OrderTicket({
         />
       </label>
 
+      {side === "sell" && vaultLive && (
+        <VaultMarginToggle
+          enabled={useVault}
+          onChange={setUseVault}
+          vaultOperator={!!vaultOperator}
+          onVaultOperatorChanged={refetchVaultOp}
+        />
+      )}
+
       <div className="flex items-center gap-2 text-xs text-[var(--faint)] font-[var(--font-mono)] px-3.5 py-3 bg-[var(--bg3)] rounded-[9px]">
         <Icon name="lock" size={13} className="text-[var(--accent)] flex-none" />
         <span>escrows</span>
         <span className="text-[var(--text)] tabular-nums">{escrowEstimate.toLocaleString()}</span>
         <span>{side === "buy" ? "vUSDC" : "vWETH"}</span>
+        {composeSell && <span className="text-[var(--accent)]">· from vault collateral</span>}
         <span className="text-[var(--faint)]">(at max tick)</span>
       </div>
 
@@ -872,6 +982,7 @@ export function TradeAppV2() {
               quoteApproved={!!quoteApproved}
               onPlace={place}
             />
+            <LastClearedPanel currentBatchId={batchId} />
             <MyOrders orders={myOrders} onUpdate={updateOrder} onBalanceChanged={onBalanceChanged} />
           </aside>
         </div>

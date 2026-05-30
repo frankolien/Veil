@@ -87,8 +87,8 @@ The trader and the solver are the only honest participants the protocol asks for
 | Route | Purpose |
 |---|---|
 | `/` | Landing page · live encrypted-batch panel |
-| `/app` | v1 paper-trade CLOB · placeOrder only · no tokens move |
-| `/app/v2` | v2 CLOB · approve vWETH + vUSDC · sealed order with real escrow + settle |
+| `/app` | CLOB · approve vWETH + vUSDC · sealed order with real escrow + settle · "Use vault collateral" toggle for composition |
+| `/app/paper` | Paper-trade sandbox · placeOrder only, no tokens move (the v1 CLOB) |
 | `/app/vault` | Confidential lending vault · encrypted deposit / borrow / repay / withdraw · user-decrypt position |
 | `/app/regulator` | Audit registry · grant / revoke time-bounded regulator key |
 
@@ -160,8 +160,8 @@ zama_grant/
 ├── web/                                # Veil landing + trade + vault + audit apps (Builder Track)
 │   ├── app/
 │   │   ├── page.tsx                    # Aurora-theme landing
-│   │   ├── app/page.tsx                # /app — v1 paper trade
-│   │   ├── app/v2/page.tsx             # /app/v2 — v2 CLOB with escrow + settle
+│   │   ├── app/page.tsx                # /app — CLOB with escrow + settle + composition
+│   │   ├── app/paper/page.tsx          # /app/paper — paper-trade sandbox (no tokens)
 │   │   ├── app/vault/page.tsx          # /app/vault — confidential lending
 │   │   ├── app/regulator/page.tsx      # /app/regulator — audit grant management
 │   │   ├── providers.tsx               # Wagmi + @zama-fhe/react-sdk providers
@@ -171,8 +171,8 @@ zama_grant/
 │   │   ├── orderbook.tsx               # useBatchLifecycle + OrderBook + BatchPanel
 │   │   ├── sections.tsx                # landing sections
 │   │   ├── nav.tsx                     # shared app-route nav
-│   │   ├── trade-app.tsx               # /app v1 view
-│   │   ├── trade-app-v2.tsx            # /app/v2 v2 view
+│   │   ├── trade-app.tsx               # /app/paper view (paper sandbox)
+│   │   ├── trade-app-v2.tsx            # /app view (real CLOB)
 │   │   ├── vault-app.tsx               # /app/vault view
 │   │   └── regulator-app.tsx           # /app/regulator view
 │   └── lib/
@@ -207,7 +207,7 @@ zama_grant/
 
 - ✅ **Week 1** — Monorepo bootstrapped · `VeilBatchAuction.sol` (v0) compiles & tests pass 4/4 on the FHEVM mock · Aurora-theme landing + trade-app frontend with real `useEncrypt` wiring · Mist (TokenOps disperse) scaffolded with `@tokenops/sdk/fhe-disperse/react`
 - ✅ **Week 2** — v1 contract: pro-rata at the marginal tick via `size · bps / 10_000` (basis-point encoding sidesteps the FHEVM no-encrypted-divisor restriction) · 10/10 tests pass on the FHEVM mock · deployed to Sepolia · Hardhat task pack for the close/clear/decrypt-fill lifecycle
-- ✅ **Week 3** — `VeilBatchAuctionV2` adds ERC-7984 dual-token escrow on `placeOrder` and per-user `settle(batchId, orderIdx)` · `vWETH` + `vUSDC` demo confidential tokens deployed · `/app/v2` wired with operator-approval UX + reveal-balances + settle button
+- ✅ **Week 3** — `VeilBatchAuctionV2` adds ERC-7984 dual-token escrow on `placeOrder` and per-user `settle(batchId, orderIdx)` · `vWETH` + `vUSDC` demo confidential tokens deployed · `/app` wired with operator-approval UX + reveal-balances + settle button
 - ✅ **Week 4** — `VeilLendingVault` with encrypted `euint64` collateral and debt · LTV gate computed homomorphically (`collateral × price × ltv / BPS_DENOM`) · over-borrow / over-withdraw silently clamp to 0 via `FHE.select` · `liquidate()` is single-tx (no decrypt round-trip) · `/app/vault` deposit / withdraw / borrow / repay UI
 - ✅ **Week 5** — `VeilRegulatorRegistry` for time-bounded delegated-decrypt grants · `/app/regulator` UI · consolidated keeper bot (`task:keeper:run`) closes/clears V2 batches and sweeps liquidations on a single loop
 - 🟡 **Week 6** — In progress: 3-minute demo video · final docs pass · Builder Track + TokenOps Special Bounty submissions

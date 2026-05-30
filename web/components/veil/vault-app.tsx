@@ -243,7 +243,7 @@ function ActionForm({
         abi: veilLendingVaultAbi,
         functionName: action,
         args: [toHex(result.handles[0]), toHex(result.inputProof)],
-        gas: 5_000_000n,
+        gas: 2_500_000n,
       });
       setStage("confirming");
       const receipt = await waitForTransactionReceipt(config, { hash });

@@ -27,6 +27,26 @@ export const veilV2Abi = [
     outputs: [],
     stateMutability: "nonpayable",
   },
+  {
+    type: "function",
+    name: "placeOrderFromVault",
+    inputs: [
+      { name: "sideExt", type: "bytes32" },
+      { name: "tickExt", type: "bytes32" },
+      { name: "sizeExt", type: "bytes32" },
+      { name: "proof", type: "bytes" },
+      { name: "marginVault", type: "address" },
+    ],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
+  {
+    type: "function",
+    name: "authorizeMarginVault",
+    inputs: [{ name: "marginVault", type: "address" }],
+    outputs: [],
+    stateMutability: "nonpayable",
+  },
   { type: "function", name: "closeBatch", inputs: [], outputs: [], stateMutability: "nonpayable" },
   {
     type: "function",

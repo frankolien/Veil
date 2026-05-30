@@ -1,5 +1,5 @@
-import { TradeApp } from "@/components/veil/trade-app";
+import { TradeAppV2 } from "@/components/veil/trade-app-v2";
 
-export default function App() {
-  return <TradeApp />;
+export default function AppV2() {
+  return <TradeAppV2 />;
 }

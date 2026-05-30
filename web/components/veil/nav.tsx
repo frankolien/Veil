@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const ROUTES: Array<{ href: string; label: string }> = [
-  { href: "/app/v2", label: "Trade" },
+  { href: "/app", label: "Trade" },
   { href: "/app/vault", label: "Vault" },
   { href: "/app/regulator", label: "Audit" },
 ];

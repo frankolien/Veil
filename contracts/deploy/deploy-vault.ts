@@ -24,6 +24,14 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     log: true,
   });
 
+  if (vault.newlyDeployed) {
+    const veilDep = await get("VeilBatchAuctionV2");
+    const veil = await hre.ethers.getContractAt("VeilBatchAuctionV2", veilDep.address);
+    const tx = await veil.authorizeMarginVault(vault.address);
+    await tx.wait();
+    console.log(`  authorizeMarginVault(${vault.address}) on V2: ${tx.hash}`);
+  }
+
   console.log("");
   console.log("Veil ancillary deployment summary");
   console.log("  VeilLendingVault:       ", vault.address);

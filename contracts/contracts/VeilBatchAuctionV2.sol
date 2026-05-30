@@ -5,6 +5,11 @@ import {FHE, ebool, euint8, euint64, externalEbool, externalEuint8, externalEuin
 import {ZamaEthereumConfig} from "@fhevm/solidity/config/ZamaConfig.sol";
 import {IConfidentialToken} from "./IConfidentialToken.sol";
 
+interface IVeilMarginVault {
+    function escrowToVeil(address user, euint64 amount) external returns (euint64);
+    function creditFromVeil(address user, euint64 amount) external;
+}
+
 /// @title VeilBatchAuctionV2 — sealed-bid uniform-price batch CLOB with ERC-7984 escrow
 /// @notice v2 adds two-token escrow on placeOrder and per-user settle() after clearing.
 ///         See docs/02-algorithm.md for the matching math and docs/08-decisions.md
@@ -22,6 +27,7 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         euint64 size;
         euint64 filledSize;
         bool settled;
+        address marginVault;
     }
 
     struct Batch {
@@ -84,6 +90,14 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         _openNewBatch();
     }
 
+    /// @notice One-shot authorization for a margin vault to pull base collateral
+    ///         out of Veil's escrow during settle. Permissionless because the vault
+    ///         itself gates pulls behind a per-user operator approval.
+    function authorizeMarginVault(address marginVault) external {
+        require(marginVault != address(0), "vault=0");
+        baseToken.setOperator(marginVault, type(uint48).max);
+    }
+
     function tickPrice(uint8 tick) public view returns (uint64) {
         return tickPrice0 + uint64(tick) * tickStep;
     }
@@ -98,6 +112,30 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         externalEuint64 sizeExt,
         bytes calldata proof
     ) external {
+        _placeOrder(sideExt, tickExt, sizeExt, proof, address(0));
+    }
+
+    /// @notice Composition entry point. The sell-side base escrow is pulled from
+    ///         the user's encrypted collateral inside `marginVault` instead of
+    ///         their wallet. Buy-side quote escrow still comes from the wallet.
+    function placeOrderFromVault(
+        externalEbool sideExt,
+        externalEuint8 tickExt,
+        externalEuint64 sizeExt,
+        bytes calldata proof,
+        address marginVault
+    ) external {
+        require(marginVault != address(0), "vault=0");
+        _placeOrder(sideExt, tickExt, sizeExt, proof, marginVault);
+    }
+
+    function _placeOrder(
+        externalEbool sideExt,
+        externalEuint8 tickExt,
+        externalEuint64 sizeExt,
+        bytes calldata proof,
+        address marginVault
+    ) internal {
         uint256 batchId = currentBatchId;
         Batch storage b = _batches[batchId];
         if (b.state != BatchState.Open || block.number >= b.closeBlock) revert BatchNotOpen();
@@ -107,7 +145,7 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         euint64 size = FHE.fromExternal(sizeExt, proof);
 
         _aggregate(b, isBuy, tickIdx, size);
-        _pullEscrow(isBuy, size);
+        _pullEscrow(isBuy, size, marginVault);
 
         Order storage o = _orders[batchId].push();
         o.trader = msg.sender;
@@ -115,6 +153,7 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         o.tickIdx = tickIdx;
         o.size = size;
         o.filledSize = FHE.asEuint64(0);
+        o.marginVault = marginVault;
 
         FHE.allowThis(o.isBuy);
         FHE.allowThis(o.tickIdx);
@@ -217,9 +256,15 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         euint64 basePayout = FHE.select(o.isBuy, buyBasePayout, sellBaseRefund);
         euint64 quotePayout = FHE.select(o.isBuy, buyQuoteRefund, sellQuotePayout);
 
-        FHE.allowTransient(basePayout, address(baseToken));
+        if (o.marginVault != address(0)) {
+            FHE.allowTransient(basePayout, address(baseToken));
+            FHE.allowTransient(basePayout, o.marginVault);
+            IVeilMarginVault(o.marginVault).creditFromVeil(msg.sender, basePayout);
+        } else {
+            FHE.allowTransient(basePayout, address(baseToken));
+            baseToken.confidentialTransfer(msg.sender, basePayout);
+        }
         FHE.allowTransient(quotePayout, address(quoteToken));
-        baseToken.confidentialTransfer(msg.sender, basePayout);
         quoteToken.confidentialTransfer(msg.sender, quotePayout);
 
         emit OrderSettled(batchId, orderIdx, msg.sender);
@@ -281,13 +326,19 @@ contract VeilBatchAuctionV2 is ZamaEthereumConfig {
         }
     }
 
-    function _pullEscrow(ebool isBuy, euint64 size) private {
+    function _pullEscrow(ebool isBuy, euint64 size, address marginVault) private {
         euint64 zero = FHE.asEuint64(0);
         euint64 baseEscrow = FHE.select(isBuy, zero, size);
         euint64 quoteEscrow = FHE.select(isBuy, FHE.mul(size, maxTickPrice()), zero);
-        FHE.allowTransient(baseEscrow, address(baseToken));
+
+        if (marginVault != address(0)) {
+            FHE.allowTransient(baseEscrow, marginVault);
+            IVeilMarginVault(marginVault).escrowToVeil(msg.sender, baseEscrow);
+        } else {
+            FHE.allowTransient(baseEscrow, address(baseToken));
+            baseToken.confidentialTransferFrom(msg.sender, address(this), baseEscrow);
+        }
         FHE.allowTransient(quoteEscrow, address(quoteToken));
-        baseToken.confidentialTransferFrom(msg.sender, address(this), baseEscrow);
         quoteToken.confidentialTransferFrom(msg.sender, address(this), quoteEscrow);
     }
 

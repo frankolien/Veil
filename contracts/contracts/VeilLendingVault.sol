@@ -21,6 +21,7 @@ contract VeilLendingVault is ZamaEthereumConfig {
     }
 
     mapping(address => Position) internal positions;
+    mapping(address => mapping(address => uint48)) internal _operatorUntil;
 
     event PositionOpened(address indexed user);
     event Deposited(address indexed user);
@@ -28,6 +29,8 @@ contract VeilLendingVault is ZamaEthereumConfig {
     event Borrowed(address indexed user);
     event Repaid(address indexed user);
     event Liquidated(address indexed borrower, address indexed keeper);
+    event MarginEscrow(address indexed user, address indexed veil);
+    event MarginCredited(address indexed user, address indexed veil);
 
     constructor(
         IConfidentialToken collateralToken_,
@@ -132,6 +135,60 @@ contract VeilLendingVault is ZamaEthereumConfig {
         _grant(p.collateral, borrower);
         _grant(p.debt, borrower);
         emit Liquidated(borrower, msg.sender);
+    }
+
+    function setOperator(address operator, uint48 until) external {
+        _operatorUntil[msg.sender][operator] = until;
+    }
+
+    function isOperator(address holder, address spender) external view returns (bool) {
+        return _operatorUntil[holder][spender] >= block.timestamp;
+    }
+
+    /// @notice Composition entry point. Used by Veil's `placeOrderFromVault` to
+    ///         pull a sell-side encrypted size out of the user's vault collateral
+    ///         without the user moving back to their wallet first. The same FHE
+    ///         clamp pattern as `withdraw` applies — over-borrow or under-collateralised
+    ///         requests silently sink to zero.
+    function escrowToVeil(address user, euint64 amount) external returns (euint64) {
+        require(_operatorUntil[user][msg.sender] >= block.timestamp, "not operator");
+        Position storage p = _ensurePosition(user);
+
+        ebool canCover = FHE.le(amount, p.collateral);
+        euint64 capped = FHE.select(canCover, amount, FHE.asEuint64(0));
+
+        euint64 newCollateral = FHE.sub(p.collateral, capped);
+        euint64 maxBorrowAfter = _maxBorrow(newCollateral);
+        ebool stillHealthy = FHE.le(p.debt, maxBorrowAfter);
+        euint64 actual = FHE.select(stillHealthy, capped, FHE.asEuint64(0));
+
+        p.collateral = FHE.sub(p.collateral, actual);
+
+        FHE.allowTransient(actual, address(collateralToken));
+        collateralToken.confidentialTransfer(msg.sender, actual);
+
+        _grant(p.collateral, user);
+        FHE.allowThis(actual);
+        FHE.allow(actual, msg.sender);
+        emit MarginEscrow(user, msg.sender);
+        return actual;
+    }
+
+    /// @notice Composition return path. Veil's `settle` calls this to credit the
+    ///         trader's unfilled sell amount back into vault collateral instead
+    ///         of returning vWETH to the wallet. The vault pulls the vWETH from
+    ///         Veil via the operator approval Veil holds on its own collateral
+    ///         token, then credits the user's encrypted collateral.
+    function creditFromVeil(address user, euint64 amount) external {
+        require(_operatorUntil[user][msg.sender] >= block.timestamp, "not operator");
+        Position storage p = _ensurePosition(user);
+
+        FHE.allowTransient(amount, address(collateralToken));
+        collateralToken.confidentialTransferFrom(msg.sender, address(this), amount);
+
+        p.collateral = FHE.add(p.collateral, amount);
+        _grant(p.collateral, user);
+        emit MarginCredited(user, msg.sender);
     }
 
     function getCollateral(address user) external view returns (euint64) {
