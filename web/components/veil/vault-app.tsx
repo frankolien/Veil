@@ -15,10 +15,16 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { sepolia } from "wagmi/chains";
 import { useEncrypt, useUserDecrypt } from "@zama-fhe/react-sdk";
 import { bytesToHex, type Address } from "viem";
+import type { ReactNode } from "react";
 import { Btn, EthereumMark, Icon, Pill, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
+import { ToastView, useToast } from "./toast";
+import { StartHere } from "./start-here";
+import { Tip } from "./tip";
+import { GLOSSARY } from "./glossary";
 import { veilLendingVaultAbi } from "@/lib/abi-vault";
 import { confidentialTokenAbi } from "@/lib/abi-v2";
+import { formatError } from "@/lib/format-error";
 import {
   VEIL_VAULT_ADDRESS,
   VEIL_BASE_ADDRESS,
@@ -140,13 +146,16 @@ function PositionPanel({
         <PositionCell label="Collateral (vWETH)" value={collateral} />
         <PositionCell label="Debt (vUSDC)" value={debt} />
         <PositionCell label="Max borrow (vUSDC)" value={maxBorrow} />
-        <PositionCell label="Utilization" value={utilization === null ? null : `${utilization}%`} />
+        <PositionCell
+          label={<Tip label="Utilization">{GLOSSARY.utilization}</Tip>}
+          value={utilization === null ? null : `${utilization}%`}
+        />
       </div>
       <div className="mt-5 pt-[18px] border-t border-[var(--line)] flex flex-wrap gap-6 items-center">
         <Cell label="Price" value={`${price.toLocaleString()} vUSDC / vWETH`} />
-        <Cell label="LTV" value={`${(ltvBps / 100).toFixed(0)}%`} />
+        <Cell label={<Tip label="LTV">{GLOSSARY.ltv}</Tip>} value={`${(ltvBps / 100).toFixed(0)}%`} />
         <Cell
-          label="Health"
+          label={<Tip label="Health">{GLOSSARY.healthFactor}</Tip>}
           value={
             healthy === null
               ? "—"
@@ -162,7 +171,7 @@ function PositionPanel({
   );
 }
 
-function PositionCell({ label, value }: { label: string; value: number | string | null }) {
+function PositionCell({ label, value }: { label: ReactNode; value: number | string | null }) {
   return (
     <div className="flex flex-col gap-1.5">
       <span className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--faint)]">{label}</span>
@@ -173,7 +182,7 @@ function PositionCell({ label, value }: { label: string; value: number | string 
   );
 }
 
-function Cell({ label, value }: { label: string; value: string }) {
+function Cell({ label, value }: { label: ReactNode; value: string }) {
   return (
     <div className="flex flex-col gap-1">
       <span className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--faint)]">{label}</span>
@@ -191,7 +200,7 @@ function ActionForm({
   action: Action;
   baseApproved: boolean;
   quoteApproved: boolean;
-  onSuccess: (a: Action) => void;
+  onSuccess: (a: Action, txHash: `0x${string}`) => void;
 }) {
   const config = useConfig();
   const chainId = useChainId();
@@ -248,11 +257,10 @@ function ActionForm({
       setStage("confirming");
       const receipt = await waitForTransactionReceipt(config, { hash });
       if (receipt.status !== "success") throw new Error(`${action} reverted`);
-      onSuccess(action);
+      onSuccess(action, hash);
     } catch (err) {
       console.error(`vault ${action} failed`, err);
-      const msg = (err as Error)?.message ?? String(err);
-      setError(msg.length > 280 ? msg.slice(0, 280) + "…" : msg);
+      setError(formatError(err));
     } finally {
       setStage("idle");
     }
@@ -373,7 +381,7 @@ export function VaultApp() {
   const [revealArmed, setRevealArmed] = useState(false);
   const [collateral, setCollateral] = useState<number | null>(null);
   const [debt, setDebt] = useState<number | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, flash } = useToast();
 
   const handles = useMemo(() => {
     if (!revealArmed) return [];
@@ -406,14 +414,10 @@ export function VaultApp() {
     }
   }, [revealArmed, decryptQuery.data, decryptQuery.isError, collateralHandle, debtHandle]);
 
-  const flash = useCallback((msg: string) => {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2400);
-  }, []);
-
   const onSuccess = useCallback(
-    (a: Action) => {
-      flash(`${a[0].toUpperCase()}${a.slice(1)} sealed in vault`);
+    (a: Action, txHash: `0x${string}`) => {
+      const verb = { deposit: "Deposited", withdraw: "Withdrew", borrow: "Borrowed", repay: "Repaid" }[a];
+      flash({ message: `${verb} confidentially. View on Sepolia:`, tone: "success", txHash });
       refetchColl();
       refetchDebt();
       setCollateral(null);
@@ -446,6 +450,33 @@ export function VaultApp() {
       </header>
 
       <div className="flex-1 max-w-[1200px] w-full mx-auto px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+        {address && (
+          <StartHere
+            storageKey="veil.starthere.vault"
+            steps={[
+              {
+                title: "Approve vWETH (to deposit)",
+                body: "One-time operator grant so the vault can pull your encrypted collateral.",
+                done: !!baseApproved,
+              },
+              {
+                title: "Approve vUSDC (to repay)",
+                body: "Only needed if you plan to repay borrowed vUSDC. Skip if you only deposit and borrow.",
+                done: !!quoteApproved,
+              },
+              {
+                title: "Deposit and borrow",
+                body: "Deposit vWETH as collateral, borrow vUSDC up to 75% of the encrypted collateral value (price 3,400 vUSDC/vWETH).",
+                done: collateral !== null && collateral > 0,
+              },
+              {
+                title: "Reveal your position",
+                body: "User-decrypts your encrypted collateral, debt, and computes max-borrow + utilization locally.",
+                done: collateral !== null || debt !== null,
+              },
+            ]}
+          />
+        )}
         {address && (
           <div className="veil-panel p-4 flex flex-wrap items-center gap-3">
             <span className="text-[11px] uppercase tracking-[0.1em] text-[var(--faint)] mr-auto">Vault operator</span>
@@ -481,12 +512,7 @@ export function VaultApp() {
         </div>
       </div>
 
-      {toast && (
-        <div className="veil-toast-in fixed bottom-7 left-1/2 -translate-x-1/2 z-[200] inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[var(--bg2)] border border-[var(--line2)] text-sm shadow-[0_20px_50px_-16px_rgba(0,0,0,0.7)]">
-          <Icon name="lock" size={14} className="text-[var(--accent)]" />
-          {toast}
-        </div>
-      )}
+      <ToastView toast={toast} />
     </div>
   );
 }

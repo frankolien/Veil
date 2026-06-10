@@ -15,6 +15,8 @@ import { waitForTransactionReceipt } from "wagmi/actions";
 import { sepolia } from "wagmi/chains";
 import { Btn, EthereumMark, Icon, Pill, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
+import { ToastView, useToast } from "./toast";
+import { formatError } from "@/lib/format-error";
 import { veilRegulatorRegistryAbi } from "@/lib/abi-vault";
 import { VEIL_REGULATOR_ADDRESS, hasRegulatorDeployment, shortAddr } from "@/lib/config";
 import type { Address } from "viem";
@@ -77,7 +79,7 @@ export function RegulatorApp() {
   const [days, setDays] = useState(String(DEFAULT_TTL_DAYS));
   const [busy, setBusy] = useState<"set" | "revoke" | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, flash } = useToast();
 
   const { data: current, refetch } = useReadContract({
     chainId: sepolia.id,
@@ -95,11 +97,6 @@ export function RegulatorApp() {
   useEffect(() => {
     if (hasGrant && grantedRegulator) setRegulatorInput(grantedRegulator);
   }, [hasGrant, grantedRegulator]);
-
-  function flash(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2400);
-  }
 
   async function ensureSepolia() {
     if (chainId !== sepolia.id) await switchChainAsync({ chainId: sepolia.id });
@@ -130,10 +127,10 @@ export function RegulatorApp() {
         args: [regulatorInput.trim() as Address, until],
       });
       await waitForTransactionReceipt(config, { hash });
-      flash("Audit grant updated");
+      flash({ message: "Audit grant updated. View on Sepolia:", tone: "success", txHash: hash });
       refetch();
     } catch (err) {
-      setError((err as Error)?.message ?? String(err));
+      setError(formatError(err));
     } finally {
       setBusy(null);
     }
@@ -153,11 +150,11 @@ export function RegulatorApp() {
         args: [],
       });
       await waitForTransactionReceipt(config, { hash });
-      flash("Audit grant revoked");
+      flash({ message: "Audit grant revoked. View on Sepolia:", tone: "success", txHash: hash });
       refetch();
       setRegulatorInput("");
     } catch (err) {
-      setError((err as Error)?.message ?? String(err));
+      setError(formatError(err));
     } finally {
       setBusy(null);
     }
@@ -272,12 +269,7 @@ export function RegulatorApp() {
         </div>
       </div>
 
-      {toast && (
-        <div className="veil-toast-in fixed bottom-7 left-1/2 -translate-x-1/2 z-[200] inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[var(--bg2)] border border-[var(--line2)] text-sm shadow-[0_20px_50px_-16px_rgba(0,0,0,0.7)]">
-          <Icon name="lock" size={14} className="text-[var(--accent)]" />
-          {toast}
-        </div>
-      )}
+      <ToastView toast={toast} />
     </div>
   );
 }

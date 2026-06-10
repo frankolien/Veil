@@ -19,6 +19,11 @@ import { OrderBook, type Lifecycle } from "./orderbook";
 import { Btn, Cipher, EthereumMark, Icon, Pill, Redacted, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
 import { LastClearedPanel } from "./last-cleared";
+import { ToastView, useToast } from "./toast";
+import { StartHere } from "./start-here";
+import { Tip } from "./tip";
+import { GLOSSARY } from "./glossary";
+import { formatError } from "@/lib/format-error";
 import { veilV2Abi, confidentialTokenAbi } from "@/lib/abi-v2";
 import { veilLendingVaultAbi } from "@/lib/abi-vault";
 import {
@@ -212,30 +217,38 @@ function VaultMarginToggle({
   }
 
   return (
-    <div className="flex items-center gap-3 px-3.5 py-3 bg-[var(--bg3)] rounded-[9px] border border-[var(--line)]">
-      <label className="flex items-center gap-2 cursor-pointer text-[12px] text-[var(--text)] font-[var(--font-mono)]">
-        <input
-          type="checkbox"
-          checked={enabled}
-          onChange={(e) => onChange(e.target.checked)}
-          className="accent-[var(--accent)]"
-        />
-        Use vault collateral
-      </label>
-      {enabled && !vaultOperator && (
-        <button
-          type="button"
-          onClick={approveVault}
-          disabled={busy}
-          className="ml-auto inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2.5 py-1 rounded-md text-[var(--text)] border border-[var(--line2)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-60"
-        >
-          <Icon name="lock" size={11} />
-          {busy ? "Signing…" : "Approve vault"}
-        </button>
-      )}
-      {enabled && vaultOperator && (
-        <span className="ml-auto text-[11px] font-[var(--font-mono)] text-[var(--accent)]">vault approved</span>
-      )}
+    <div className="flex flex-col gap-2.5 px-3.5 py-3 bg-[var(--bg3)] rounded-[9px] border border-[var(--line)]">
+      <div className="flex items-center gap-3">
+        <label className="flex items-center gap-2 cursor-pointer text-[12px] text-[var(--text)] font-[var(--font-mono)]">
+          <input
+            type="checkbox"
+            checked={enabled}
+            onChange={(e) => onChange(e.target.checked)}
+            className="accent-[var(--accent)]"
+          />
+          Use vault collateral
+        </label>
+        {enabled && !vaultOperator && (
+          <button
+            type="button"
+            onClick={approveVault}
+            disabled={busy}
+            className="ml-auto inline-flex items-center gap-1.5 font-[var(--font-mono)] text-[11px] px-2.5 py-1 rounded-md text-[var(--text)] border border-[var(--line2)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-60"
+          >
+            <Icon name="lock" size={11} />
+            {busy ? "Signing…" : "Approve vault"}
+          </button>
+        )}
+        {enabled && vaultOperator && (
+          <span className="ml-auto text-[11px] font-[var(--font-mono)] text-[var(--accent)]">vault approved</span>
+        )}
+      </div>
+      <p className="text-[11px] leading-[1.55] text-[var(--dim)] font-[var(--font-mono)] m-0">
+        Compose the lending vault into this trade. Your encrypted vWETH collateral is pulled directly from the vault
+        and escrowed in Veil — your wallet vWETH balance is untouched. Unfilled size returns straight to vault
+        collateral on settle. <span className="text-[var(--accent)]">This is the moat: encrypted state from one
+        contract flowing into another, no decrypt in between.</span>
+      </p>
     </div>
   );
 }
@@ -308,7 +321,7 @@ function OrderTicket({
       try {
         await switchChainAsync({ chainId: sepolia.id });
       } catch (err) {
-        setErrorMsg("Switch MetaMask to Sepolia to submit: " + (err as Error).message);
+        setErrorMsg("Switch MetaMask to Sepolia to submit: " + formatError(err));
         return;
       }
     }
@@ -375,15 +388,8 @@ function OrderTicket({
         orderIdx,
       });
     } catch (err) {
-      const chain: string[] = [];
-      let cur: unknown = err;
-      while (cur && chain.length < 5) {
-        chain.push(cur instanceof Error ? cur.message : String(cur));
-        cur = cur instanceof Error ? (cur as Error & { cause?: unknown }).cause : undefined;
-      }
-      const msg = chain.join(" ← ");
       console.error("Veil v2 placeOrder failed:", err);
-      setErrorMsg(msg.length > 320 ? msg.slice(0, 320) + "…" : msg);
+      setErrorMsg(formatError(err));
     } finally {
       setStage("idle");
     }
@@ -424,7 +430,9 @@ function OrderTicket({
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-[13px] text-[var(--dim)]">Price tick</span>
+        <span className="text-[13px] text-[var(--dim)]">
+          Price <Tip label="tick">{GLOSSARY.tick}</Tip>
+        </span>
         <select
           value={tickIdx}
           onChange={(e) => setTickIdx(Number(e.target.value))}
@@ -508,10 +516,12 @@ function OrderRow({
   order,
   onUpdate,
   onBalanceChanged,
+  onSettleSuccess,
 }: {
   order: MyOrder;
   onUpdate: (id: number, patch: Partial<MyOrder>) => void;
   onBalanceChanged: () => void;
+  onSettleSuccess: (txHash: `0x${string}`, fill: number, side: "buy" | "sell") => void;
 }) {
   const o = order;
   const config = useConfig();
@@ -609,6 +619,7 @@ function OrderRow({
       });
       await waitForTransactionReceipt(config, { hash: tx });
       onUpdate(o.id, { status: "settled" });
+      onSettleSuccess(tx, o.fill ?? 0, o.side);
       onBalanceChanged();
     } catch (err) {
       console.error("settle failed:", err);
@@ -701,10 +712,12 @@ function MyOrders({
   orders,
   onUpdate,
   onBalanceChanged,
+  onSettleSuccess,
 }: {
   orders: MyOrder[];
   onUpdate: (id: number, patch: Partial<MyOrder>) => void;
   onBalanceChanged: () => void;
+  onSettleSuccess: (txHash: `0x${string}`, fill: number, side: "buy" | "sell") => void;
 }) {
   if (!orders.length) {
     return (
@@ -731,6 +744,7 @@ function MyOrders({
             order={o}
             onUpdate={onUpdate}
             onBalanceChanged={onBalanceChanged}
+            onSettleSuccess={onSettleSuccess}
           />
         ))}
       </div>
@@ -794,7 +808,7 @@ export function TradeAppV2() {
   const { address } = useAccount();
 
   const [myOrders, setMyOrders] = useState<MyOrder[]>([]);
-  const [toast, setToast] = useState<string | null>(null);
+  const { toast, flash } = useToast();
   const oidRef = useState({ current: 0 })[0];
 
   const { data: baseApproved } = useOperatorStatus(VEIL_BASE_ADDRESS as Address, address);
@@ -847,11 +861,6 @@ export function TradeAppV2() {
     }
   }, [revealArmed, balanceQuery.data, balanceQuery.isError, baseBalanceHandle, quoteBalanceHandle]);
 
-  function flash(msg: string) {
-    setToast(msg);
-    setTimeout(() => setToast(null), 2400);
-  }
-
   function place(o: {
     side: "buy" | "sell";
     tickIdx: number;
@@ -873,7 +882,11 @@ export function TradeAppV2() {
         ...prev,
       ].slice(0, 6),
     );
-    flash("Sealed bid escrowed in batch #" + batchId);
+    flash({
+      message: `Sealed bid escrowed in batch #${batchId}. View on Sepolia:`,
+      tone: "success",
+      txHash: o.txHash,
+    });
     refetchBaseBalance();
     refetchQuoteBalance();
     setBaseBalance(null);
@@ -889,6 +902,15 @@ export function TradeAppV2() {
     refetchQuoteBalance();
     setBaseBalance(null);
     setQuoteBalance(null);
+  }
+
+  function onSettleSuccess(txHash: `0x${string}`, fill: number, side: "buy" | "sell") {
+    const symbol = side === "buy" ? "vWETH" : "vUSDC";
+    const msg =
+      fill > 0
+        ? `Settled — received ${fill.toLocaleString()} ${symbol}. View on Sepolia:`
+        : "Settled — no fill, escrow refunded. View on Sepolia:";
+    flash({ message: msg, tone: "success", txHash });
   }
 
   const statusTone = phase === "open" ? "buy" : phase === "cleared" ? "accent" : "warn";
@@ -920,6 +942,33 @@ export function TradeAppV2() {
       </header>
 
       <div className="flex-1 max-w-[1200px] w-full mx-auto px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+        {address && (
+          <StartHere
+            storageKey="veil.starthere.trade"
+            steps={[
+              {
+                title: "Approve vWETH and vUSDC",
+                body: "One-time operator grant so Veil can pull your encrypted escrow when you place an order.",
+                done: !!baseApproved && !!quoteApproved,
+              },
+              {
+                title: "Reveal your encrypted balances",
+                body: "Decrypts the ERC-7984 balance handles locally so you can size orders sensibly. Nothing is revealed on-chain.",
+                done: baseBalance !== null || quoteBalance !== null,
+              },
+              {
+                title: "Place a sealed order",
+                body: "Side, tick, and size are encrypted in the browser. Escrow is pulled inside the same tx.",
+                done: myOrders.length > 0,
+              },
+              {
+                title: "Settle after the batch clears",
+                body: "Once the keeper closes + clears the batch, hit Settle on your order row to release filled + unfilled sides.",
+                done: myOrders.some((o) => o.status === "settled"),
+              },
+            ]}
+          />
+        )}
         {address && (
           <OperatorBar
             baseApproved={!!baseApproved}
@@ -983,17 +1032,17 @@ export function TradeAppV2() {
               onPlace={place}
             />
             <LastClearedPanel currentBatchId={batchId} />
-            <MyOrders orders={myOrders} onUpdate={updateOrder} onBalanceChanged={onBalanceChanged} />
+            <MyOrders
+              orders={myOrders}
+              onUpdate={updateOrder}
+              onBalanceChanged={onBalanceChanged}
+              onSettleSuccess={onSettleSuccess}
+            />
           </aside>
         </div>
       </div>
 
-      {toast && (
-        <div className="veil-toast-in fixed bottom-7 left-1/2 -translate-x-1/2 z-[200] inline-flex items-center gap-2.5 px-5 py-3 rounded-xl bg-[var(--bg2)] border border-[var(--line2)] text-sm shadow-[0_20px_50px_-16px_rgba(0,0,0,0.7)]">
-          <Icon name="lock" size={14} className="text-[var(--accent)]" />
-          {toast}
-        </div>
-      )}
+      <ToastView toast={toast} />
     </div>
   );
 }
