@@ -74,8 +74,8 @@ export function Nav() {
 export function Hero() {
   const life = useBatchLifecycle(true);
   return (
-    <section className="relative px-7 pt-14" id="top">
-      <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-14 items-center min-h-[72vh]">
+    <section className="relative px-5 sm:px-7 pt-10 sm:pt-14" id="top">
+      <div className="max-w-[1200px] mx-auto grid lg:grid-cols-[1.05fr_0.95fr] gap-10 sm:gap-14 items-center lg:min-h-[72vh]">
         <div>
           <div className="font-[var(--font-mono)] text-[13px] uppercase tracking-[0.16em] text-[var(--dim)] flex items-center gap-3 mb-[26px]">
             <span className="w-[30px] h-px bg-[var(--accent)]" />

@@ -16,57 +16,13 @@ import { sepolia } from "wagmi/chains";
 import { Btn, EthereumMark, Icon, Pill, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
 import { ToastView, useToast } from "./toast";
+import { ConnectChip } from "./connect-chip";
 import { formatError } from "@/lib/format-error";
 import { veilRegulatorRegistryAbi } from "@/lib/abi-vault";
 import { VEIL_REGULATOR_ADDRESS, hasRegulatorDeployment, shortAddr } from "@/lib/config";
 import type { Address } from "viem";
 
 const DEFAULT_TTL_DAYS = 30;
-
-function ConnectChip() {
-  const { address, isConnected, chain } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-  const { disconnect, isPending: disconnecting } = useDisconnect();
-  const chainId = useChainId();
-  const { switchChainAsync, isPending: switching } = useSwitchChain();
-  const wrongChain = isConnected && chainId !== sepolia.id;
-  if (isConnected && address) {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        {wrongChain && (
-          <button
-            type="button"
-            onClick={() => switchChainAsync({ chainId: sepolia.id }).catch(() => {})}
-            disabled={switching}
-            className="inline-flex items-center gap-1.5 text-[12px] font-[var(--font-mono)] px-2.5 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--sell)_45%,transparent)] text-[var(--sell)] bg-[color-mix(in_oklab,var(--sell)_8%,transparent)]"
-          >
-            {switching ? "Switching…" : "Wrong network · switch"}
-          </button>
-        )}
-        <span className="inline-flex items-center gap-2 text-[13px] px-3.5 py-1.5 border border-[var(--line2)] rounded-lg text-[var(--text)]">
-          <Icon name="wallet" size={14} />
-          <span className="font-[var(--font-mono)]">{shortAddr(address)}</span>
-          {chain && <span className="text-[var(--dim)]">· {chain.name}</span>}
-        </span>
-        <button
-          type="button"
-          onClick={() => disconnect()}
-          disabled={disconnecting}
-          className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg border border-[var(--line2)] text-[var(--dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-60"
-        >
-          {disconnecting ? "…" : "Disconnect"}
-        </button>
-      </span>
-    );
-  }
-  const injected = connectors.find((c) => c.id === "injected") ?? connectors[0];
-  return (
-    <Btn variant="primary" size="sm" disabled={isPending || !injected} onClick={() => injected && connect({ connector: injected })}>
-      <Icon name="wallet" size={14} />
-      {isPending ? "Connecting…" : "Connect"}
-    </Btn>
-  );
-}
 
 export function RegulatorApp() {
   const { address } = useAccount();
@@ -173,20 +129,21 @@ export function RegulatorApp() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 h-16 flex items-center justify-between px-6 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_80%,transparent)] backdrop-blur-[16px]">
-        <div className="flex items-center gap-[18px]">
+      <header className="sticky top-0 z-50 min-h-16 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_80%,transparent)] backdrop-blur-[16px]">
+        <div className="flex items-center gap-3 sm:gap-[18px] flex-wrap">
           <a
             href="/"
-            className="inline-flex items-center gap-1.5 bg-transparent border border-[var(--line2)] text-[var(--dim)] rounded-lg h-[34px] px-3 font-[var(--font-display)] text-[13px] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all"
+            aria-label="Back to site"
+            className="inline-flex items-center gap-1.5 bg-transparent border border-[var(--line2)] text-[var(--dim)] rounded-lg h-[34px] px-2.5 sm:px-3 font-[var(--font-display)] text-[13px] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all"
           >
             <Icon name="arrow" size={16} className="rotate-180" />
-            Site
+            <span className="hidden sm:inline">Site</span>
           </a>
           <Wordmark className="text-base" />
           <VeilNav />
         </div>
-        <div className="flex items-center gap-[18px]">
-          <span className="inline-flex items-center gap-2 text-[13px] text-[var(--dim)] font-[var(--font-mono)]">
+        <div className="flex items-center gap-3 sm:gap-[18px]">
+          <span className="hidden sm:inline-flex items-center gap-2 text-[13px] text-[var(--dim)] font-[var(--font-mono)]">
             <EthereumMark className="text-[var(--accent)] drop-shadow-[0_0_6px_var(--glow)]" />
             Sepolia
           </span>
@@ -194,7 +151,7 @@ export function RegulatorApp() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-[900px] w-full mx-auto px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+      <div className="flex-1 max-w-[900px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
         <div className="veil-panel p-[22px]">
           <div className="veil-panel-glow" />
           <div className="relative flex items-center justify-between mb-[18px]">
@@ -210,7 +167,7 @@ export function RegulatorApp() {
               {hasGrant ? "audit granted" : "no grant"}
             </Pill>
           </div>
-          <div className="relative grid grid-cols-2 gap-6">
+          <div className="relative grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
             <div className="flex flex-col gap-1.5">
               <span className="text-[10.5px] uppercase tracking-[0.1em] text-[var(--faint)]">Current regulator</span>
               <span className="font-[var(--font-mono)] text-[14px] text-[var(--text)] break-all">

@@ -23,6 +23,7 @@ import { ToastView, useToast } from "./toast";
 import { StartHere } from "./start-here";
 import { Tip } from "./tip";
 import { GLOSSARY } from "./glossary";
+import { ConnectChip } from "./connect-chip";
 import { formatError } from "@/lib/format-error";
 import { veilV2Abi, confidentialTokenAbi } from "@/lib/abi-v2";
 import { veilLendingVaultAbi } from "@/lib/abi-vault";
@@ -752,56 +753,6 @@ function MyOrders({
   );
 }
 
-function ConnectChip() {
-  const { address, isConnected, chain } = useAccount();
-  const { connect, connectors, isPending } = useConnect();
-  const { disconnect, isPending: disconnecting } = useDisconnect();
-  const chainId = useChainId();
-  const { switchChainAsync, isPending: switching } = useSwitchChain();
-  const wrongChain = isConnected && chainId !== sepolia.id;
-  if (isConnected && address) {
-    return (
-      <span className="inline-flex items-center gap-1.5">
-        {wrongChain && (
-          <button
-            type="button"
-            onClick={() => switchChainAsync({ chainId: sepolia.id }).catch(() => {})}
-            disabled={switching}
-            className="inline-flex items-center gap-1.5 text-[12px] font-[var(--font-mono)] px-2.5 py-1.5 rounded-lg border border-[color-mix(in_oklab,var(--sell)_45%,transparent)] text-[var(--sell)] bg-[color-mix(in_oklab,var(--sell)_8%,transparent)]"
-          >
-            {switching ? "Switching…" : "Wrong network · switch"}
-          </button>
-        )}
-        <span className="inline-flex items-center gap-2 text-[13px] px-3.5 py-1.5 border border-[var(--line2)] rounded-lg text-[var(--text)]">
-          <Icon name="wallet" size={14} />
-          <span className="font-[var(--font-mono)]">{shortAddr(address)}</span>
-          {chain && <span className="text-[var(--dim)]">· {chain.name}</span>}
-        </span>
-        <button
-          type="button"
-          onClick={() => disconnect()}
-          disabled={disconnecting}
-          className="inline-flex items-center gap-1.5 text-[12px] px-2.5 py-1.5 rounded-lg border border-[var(--line2)] text-[var(--dim)] hover:text-[var(--text)] hover:border-[var(--accent)] transition-colors disabled:opacity-60"
-        >
-          {disconnecting ? "…" : "Disconnect"}
-        </button>
-      </span>
-    );
-  }
-  const injected = connectors.find((c) => c.id === "injected") ?? connectors[0];
-  return (
-    <Btn
-      variant="primary"
-      size="sm"
-      disabled={isPending || !injected}
-      onClick={() => injected && connect({ connector: injected })}
-    >
-      <Icon name="wallet" size={14} />
-      {isPending ? "Connecting…" : "Connect"}
-    </Btn>
-  );
-}
-
 export function TradeAppV2() {
   const life = useV2Lifecycle();
   const { phase, batchId, book, blocksLeft, orders: orderCount } = life;
@@ -917,23 +868,24 @@ export function TradeAppV2() {
 
   return (
     <div className="min-h-screen flex flex-col">
-      <header className="sticky top-0 z-50 h-16 flex items-center justify-between px-6 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_80%,transparent)] backdrop-blur-[16px]">
-        <div className="flex items-center gap-[18px]">
+      <header className="sticky top-0 z-50 min-h-16 flex flex-wrap items-center justify-between gap-3 px-4 sm:px-6 py-2 border-b border-[var(--line)] bg-[color-mix(in_oklab,var(--bg)_80%,transparent)] backdrop-blur-[16px]">
+        <div className="flex items-center gap-3 sm:gap-[18px] flex-wrap">
           <a
             href="/"
-            className="inline-flex items-center gap-1.5 bg-transparent border border-[var(--line2)] text-[var(--dim)] rounded-lg h-[34px] px-3 font-[var(--font-display)] text-[13px] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all"
+            aria-label="Back to site"
+            className="inline-flex items-center gap-1.5 bg-transparent border border-[var(--line2)] text-[var(--dim)] rounded-lg h-[34px] px-2.5 sm:px-3 font-[var(--font-display)] text-[13px] hover:text-[var(--text)] hover:border-[var(--accent)] transition-all"
           >
             <Icon name="arrow" size={16} className="rotate-180" />
-            Site
+            <span className="hidden sm:inline">Site</span>
           </a>
           <Wordmark className="text-base" />
           <VeilNav />
-          <span className="font-[var(--font-mono)] text-[13px] text-[var(--dim)] px-3 py-1.5 border border-[var(--line)] rounded-md">
+          <span className="hidden md:inline-flex font-[var(--font-mono)] text-[13px] text-[var(--dim)] px-3 py-1.5 border border-[var(--line)] rounded-md">
             vWETH / vUSDC
           </span>
         </div>
-        <div className="flex items-center gap-[18px]">
-          <span className="inline-flex items-center gap-2 text-[13px] text-[var(--dim)] font-[var(--font-mono)]">
+        <div className="flex items-center gap-3 sm:gap-[18px]">
+          <span className="hidden sm:inline-flex items-center gap-2 text-[13px] text-[var(--dim)] font-[var(--font-mono)]">
             <EthereumMark className="text-[var(--accent)] drop-shadow-[0_0_6px_var(--glow)]" />
             Sepolia
           </span>
@@ -941,7 +893,7 @@ export function TradeAppV2() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-[1200px] w-full mx-auto px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+      <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
         {address && (
           <StartHere
             storageKey="veil.starthere.trade"
@@ -1005,7 +957,7 @@ export function TradeAppV2() {
                 </Pill>
               </div>
               <OrderBook life={life} rowHeight={46} />
-              <div className="relative mt-5 pt-[18px] border-t border-[var(--line)] flex gap-10">
+              <div className="relative mt-5 pt-[18px] border-t border-[var(--line)] flex flex-wrap gap-5 sm:gap-10">
                 {[
                   ["Orders", String(orderCount)],
                   ["Window", "10 blocks"],
