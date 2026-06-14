@@ -2,6 +2,9 @@
 
 **Confidential MEV-resistant CLOB DEX with cross-margined lending — built on the Zama Protocol (FHEVM)**
 
+🔗 **Live demo:** https://veil-zama.vercel.app
+📍 Sepolia · contracts table below.
+
 ![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg) ![Network: Sepolia](https://img.shields.io/badge/network-Ethereum%20Sepolia-purple) ![FHEVM: 0.11](https://img.shields.io/badge/FHEVM-0.11-6fe9f7) ![Submission: Season 3](https://img.shields.io/badge/Zama%20DevProgram-Season%203-a78bfa)
 
 ---

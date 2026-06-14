@@ -1,0 +1,1676 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Veil — Engineering Reference</title>
+<style>
+  :root{
+    --paper:#0a0a0b; --paper-2:#141416; --card:#141416; --card-2:#1b1b1e;
+    --line:#2a2a2e; --line-strong:#3a3a40;
+    --ink:#fafafa; --muted:#c4c4c8; --faint:#86868c;
+    --danger:#ff5b5b; --danger-soft:#2a1416;
+    --gold:#d9c27a; --green:#7fcf8f;
+    --t0:#9b9b9b; --t1:#bdbdbd; --t2:#dadada; --t3:#fafafa;
+    --serif:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    --sans:-apple-system,BlinkMacSystemFont,"Helvetica Neue","Inter",Arial,sans-serif;
+    --mono:"SF Mono","JetBrains Mono",Menlo,Consolas,monospace;
+  }
+  @page{ size:A4; margin:0; }
+  *{ box-sizing:border-box; }
+  html,body{ margin:0; padding:0; }
+  body{
+    background:var(--paper); color:var(--ink);
+    font-family:var(--sans); font-size:10.2pt; line-height:1.62;
+    -webkit-print-color-adjust:exact; print-color-adjust:exact;
+    letter-spacing:0.005em;
+    padding:0 16mm;
+  }
+  p{ margin:0 0 9px; color:var(--muted); }
+  strong{ color:var(--ink); font-weight:600; }
+  em{ color:var(--ink); font-style:italic; }
+  a{ color:var(--ink); text-decoration:none; }
+  code{ font-family:var(--mono); font-size:0.86em; color:var(--ink);
+        background:rgba(255,255,255,0.05); padding:0.5px 4px; border-radius:4px; }
+  h1,h2,h3,h4{ color:var(--ink); letter-spacing:-0.01em; }
+
+  .page-break{ break-before:page; }
+  .chapter{ break-before:page; padding-top:4px; }
+  .nobreak{ break-inside:avoid; }
+
+  /* COVER */
+  .cover{ height:257mm; display:flex; flex-direction:column; justify-content:center; }
+  .cover .mark{ width:34px; height:34px; border:1.5px solid var(--line-strong);
+    border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:30px;}
+  .cover .mark i{ width:13px; height:13px; background:var(--ink); border-radius:3px; display:block;}
+  .cover h1{ font-family:var(--serif); font-weight:400; font-size:52pt; line-height:1.02;
+    margin:0 0 14px; letter-spacing:-0.02em; }
+  .cover .sub{ font-family:var(--serif); font-style:italic; color:#9aa0a6; font-size:14pt;
+    max-width:150mm; line-height:1.45; }
+  .cover .meta{ margin-top:48px; color:var(--faint); font-size:9.5pt; letter-spacing:0.06em; text-transform:uppercase; }
+  .cover .edition{ margin-top:6px; color:var(--faint); font-size:9pt; }
+  .cover .red{ color:var(--danger); }
+
+  /* CONTENTS */
+  .toc h2{ font-family:var(--serif); font-weight:400; font-size:30pt; margin:0 0 26px; }
+  .toc .part{ color:#6fb3c9; font-size:9.5pt; letter-spacing:0.16em; text-transform:uppercase;
+    font-weight:600; margin:22px 0 10px; }
+  .toc .row{ display:flex; align-items:baseline; gap:10px; padding:5px 0;
+    border-bottom:1px dotted var(--line); }
+  .toc .row .n{ color:var(--faint); font-family:var(--mono); font-size:9pt; width:26px; }
+  .toc .row .t{ color:var(--ink); font-size:10.5pt; flex:1; }
+
+  /* CHAPTER OPENER */
+  .opener{ position:relative; padding-top:6mm; margin-bottom:18px; }
+  .opener .bignum{ font-family:var(--serif); font-weight:400; font-size:92pt; line-height:0.9;
+    color:transparent; -webkit-text-stroke:1px var(--line-strong); margin:0 0 4px; }
+  .opener .part-label{ color:#6fb3c9; font-size:8.5pt; letter-spacing:0.16em; text-transform:uppercase;
+    font-weight:600; margin-bottom:8px; }
+  .opener h2{ font-family:var(--serif); font-weight:400; font-size:30pt; line-height:1.05;
+    margin:0 0 4px; letter-spacing:-0.015em; }
+  .learn{ margin:18px 0 22px; }
+  .learn .h{ color:#6fb3c9; font-size:8.5pt; letter-spacing:0.16em; text-transform:uppercase;
+    font-weight:600; margin-bottom:10px; border-bottom:1px solid var(--line); padding-bottom:8px;}
+  .learn ul{ margin:0; padding:0; list-style:none; }
+  .learn li{ position:relative; padding:4px 0 4px 18px; color:var(--muted); font-size:10pt; }
+  .learn li:before{ content:"\25B8"; position:absolute; left:0; color:#6fb3c9; font-size:8pt; top:6px;}
+
+  h3{ font-size:14pt; margin:22px 0 8px; font-weight:600; }
+  h4{ font-size:11pt; margin:16px 0 6px; font-weight:600; color:var(--ink); }
+  .sub-rule{ border:0; border-top:1px solid var(--line); margin:8px 0 12px; }
+
+  /* CODE */
+  pre{ background:#0d0d10; border:1px solid var(--line); border-radius:8px;
+    padding:11px 13px; margin:11px 0 13px; overflow:hidden; break-inside:avoid; }
+  pre code{ background:none; padding:0; font-size:8.4pt; line-height:1.5; color:#e8e8ea;
+    white-space:pre-wrap; word-break:break-word; }
+  pre .c{ color:var(--faint); font-style:italic; }
+  pre .s{ color:var(--gold); }
+  .codecap{ color:var(--faint); font-size:8pt; font-family:var(--mono); margin:-8px 0 12px; }
+
+  /* CALLOUTS */
+  .callout{ border:1px solid var(--line); border-left:3px solid var(--gold);
+    background:#131012; border-radius:8px; padding:12px 15px; margin:14px 0; break-inside:avoid; }
+  .callout.note{ border-left-color:#6fb3c9; background:#0f1316; }
+  .callout .k{ font-size:8pt; letter-spacing:0.16em; text-transform:uppercase; font-weight:700;
+    color:var(--gold); margin-bottom:5px; }
+  .callout.note .k{ color:#6fb3c9; }
+  .callout .ti{ font-weight:600; color:var(--ink); margin-bottom:5px; font-size:10.5pt; }
+  .callout p{ font-size:9.5pt; margin-bottom:6px; }
+  .callout p:last-child{ margin-bottom:0; }
+
+  /* TABLES */
+  table{ width:100%; border-collapse:collapse; margin:12px 0 14px; break-inside:avoid; font-size:9pt;}
+  thead th{ text-align:left; color:#6fb3c9; font-size:8pt; letter-spacing:0.1em; text-transform:uppercase;
+    font-weight:600; padding:9px 10px; border-bottom:1px solid var(--line-strong); }
+  tbody td{ padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:top; color:var(--muted); }
+  tbody td:first-child{ color:var(--ink); }
+  td code{ font-size:8pt; }
+
+  /* FIGURE / DIAGRAM */
+  .fig{ border:1px solid var(--line); background:#0f0f12; border-radius:10px; padding:18px 16px;
+    margin:14px 0; break-inside:avoid; }
+  .figcap{ color:#6fb3c9; font-size:8.5pt; margin-top:10px; }
+  .figcap b{ color:#6fb3c9; }
+  .flow{ display:flex; align-items:stretch; gap:8px; flex-wrap:wrap; justify-content:center; }
+  .node{ border:1px solid var(--line-strong); border-radius:8px; padding:9px 11px; min-width:96px;
+    text-align:center; background:#15151a; }
+  .node .nt{ font-weight:600; font-size:9pt; color:var(--ink); }
+  .node .nd{ color:var(--faint); font-size:7.6pt; margin-top:2px; line-height:1.3; }
+  .node.bad{ border-color:#5a2a2a; background:#1b1012; }
+  .node.bad .nt{ color:var(--danger); }
+  .node.ok{ border-color:#2f5a37; background:#101b13; }
+  .node.ok .nt{ color:var(--green); }
+  .arrow{ display:flex; align-items:center; color:var(--faint); font-size:14pt; }
+
+  .lede{ color:var(--ink); font-size:11pt; }
+  .small{ font-size:9pt; color:var(--faint); }
+  .red{ color:var(--danger); }
+  .green{ color:var(--green); }
+  ul.tight{ margin:6px 0 10px; padding-left:18px; }
+  ul.tight li{ color:var(--muted); margin:3px 0; }
+  .kicker{ color:var(--faint); font-size:9pt; }
+
+  /* syntax highlighting — restrained dark palette, no red (red stays for danger only) */
+  pre code.hljs{ color:#c7c9d3; }
+  .hljs-comment, .hljs-quote{ color:#6b6d77; font-style:italic; }
+  .hljs-keyword, .hljs-selector-tag, .hljs-literal, .hljs-section{ color:#7aa2f7; }
+  .hljs-meta, .hljs-meta .hljs-keyword{ color:#7aa2f7; }
+  .hljs-type, .hljs-built_in, .hljs-builtin-name, .hljs-class .hljs-title{ color:#7dcfff; }
+  .hljs-title, .hljs-title.function_, .hljs-function .hljs-title{ color:#7dcfff; }
+  .hljs-string, .hljs-meta .hljs-string, .hljs-regexp{ color:#9ece6a; }
+  .hljs-number{ color:#e0af68; }
+  .hljs-attr, .hljs-attribute, .hljs-property, .hljs-variable.constant_{ color:#73daca; }
+  .hljs-symbol, .hljs-bullet{ color:#bb9af7; }
+  .hljs-params, .hljs-variable, .hljs-template-variable{ color:#c0caf5; }
+  .hljs-operator, .hljs-punctuation{ color:#a9b1d6; }
+  .hljs-emphasis{ font-style:italic; }
+  .hljs-strong{ font-weight:600; }
+</style>
+</head>
+<body>
+
+<!-- ===================== COVER ===================== -->
+<section class="cover">
+  <div class="mark"><i></i></div>
+  <h1>Veil</h1>
+  <div class="sub">A Confidential MEV-Resistant CLOB DEX with Cross-Margined Lending on Zama FHEVM —
+    The Complete Engineering Reference</div>
+  <div class="meta">Product Spec &middot; Architecture &middot; Code Walkthrough</div>
+  <div class="edition">Zama Developer Program Mainnet Season 3 &middot; Builder Track &middot; Composable Privacy Is the Key</div>
+  <div class="edition" style="margin-top:18px;">sealed bid &rarr; encrypted clearing &rarr; per-user settle &rarr; <span class="red">vault collateral, never decrypted</span></div>
+</section>
+
+<!-- ===================== CONTENTS ===================== -->
+<section class="page-break toc">
+  <h2>Contents</h2>
+
+  <div class="part">Part I &mdash; The Thesis</div>
+  <div class="row"><div class="n">1</div><div class="t">What Veil Is, and Why It Wins</div></div>
+
+  <div class="part">Part II &mdash; The On-Chain Spine</div>
+  <div class="row"><div class="n">2</div><div class="t">The Sealed-Bid Uniform-Price Batch Auction</div></div>
+  <div class="row"><div class="n">3</div><div class="t">ERC-7984 Escrow and Per-User Settlement</div></div>
+  <div class="row"><div class="n">4</div><div class="t">VeilLendingVault &mdash; Encrypted Health Factor</div></div>
+  <div class="row"><div class="n">5</div><div class="t">Vault &harr; CLOB Composition</div></div>
+  <div class="row"><div class="n">6</div><div class="t">VeilRegulatorRegistry, Deployment &amp; Tests</div></div>
+
+  <div class="part">Part III &mdash; The Off-Chain Layer</div>
+  <div class="row"><div class="n">7</div><div class="t">The Off-Chain Clearing Solver</div></div>
+  <div class="row"><div class="n">8</div><div class="t">The Keeper Bot</div></div>
+  <div class="row"><div class="n">9</div><div class="t">Aggregate Public Decryption</div></div>
+
+  <div class="part">Part IV &mdash; The Frontend</div>
+  <div class="row"><div class="n">10</div><div class="t">The Design System</div></div>
+  <div class="row"><div class="n">11</div><div class="t">The Pages</div></div>
+  <div class="row"><div class="n">12</div><div class="t">The Components</div></div>
+  <div class="row"><div class="n">13</div><div class="t">The Wallet-Connected Trade Flow</div></div>
+  <div class="row"><div class="n">14</div><div class="t">UX Polish &mdash; Toasts, Onboarding, Mobile, Deploy</div></div>
+
+  <div class="part">Part V &mdash; Reference</div>
+  <div class="row"><div class="n">A</div><div class="t">The File Map</div></div>
+  <div class="row"><div class="n">B</div><div class="t">Deployed Addresses &amp; Environment</div></div>
+  <div class="row"><div class="n">C</div><div class="t">The 3-Minute Demo Run-of-Show</div></div>
+  <div class="row"><div class="n">D</div><div class="t">Glossary</div></div>
+</section>
+
+<!-- ===================== CHAPTER 1 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">1</div>
+    <div class="part-label">Part I &mdash; The Thesis</div>
+    <h2>What Veil Is, and Why It Wins</h2>
+  </div>
+
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The one-sentence thesis, and the MEV gap every other DEX leaves open</li>
+      <li>The four composed primitives &mdash; CLOB, escrow, vault, audit &mdash; and how they chain</li>
+      <li>The north-star loop: <em>seal &rarr; aggregate &rarr; clear &rarr; settle</em>, all encrypted end-to-end</li>
+      <li>Why FHE is load-bearing, not decorative &mdash; what ZK and commit-reveal literally cannot do</li>
+      <li>The current state: 5 contracts live and verified on Sepolia, hosted dashboard, multi-route end-to-end demo</li>
+    </ul>
+  </div>
+
+  <p class="lede">Every order book on Ethereum reveals state at match time. &ldquo;Private&rdquo; DEXes shipped to
+  date use sequencer secrecy or commit&ndash;reveal latency &mdash; they just race to settle before the leak
+  matters. Bots see your hand the moment it touches the chain, copy it, sandwich it, and front-run it. Lending
+  protocols compound the problem: a public health factor is a public liquidation target. Privacy framed as a
+  head start isn&rsquo;t privacy &mdash; it&rsquo;s a race the user always loses.</p>
+
+  <p><strong>Veil</strong> closes that race. A sealed-bid uniform-price batch-auction CLOB where side, price
+  tick, and size are encrypted end-to-end under FHE. Per-tick aggregate volumes accumulate as ciphertexts
+  on-chain. After the batch closes the aggregates become publicly decryptable; any keeper computes the one
+  clearing tick; per-user fills are computed under FHE and remain user-decryptable only. Stacked on top is
+  a lending vault whose health factor is an <code>euint64</code> the contract acts on without ever decrypting,
+  a regulator registry that lets users grant time-bounded delegated decryption for audit, and the
+  composability moat: <strong>vault collateral can be the source of a Veil sell escrow, and unfilled remainder
+  returns to vault collateral on settle &mdash; with no decrypt in between</strong>.</p>
+
+  <h3>The four pieces</h3>
+  <table>
+    <thead><tr><th>Layer</th><th>What it is</th><th>Where it lives</th></tr></thead>
+    <tbody>
+      <tr><td>CLOB</td><td>Sealed-bid uniform-price batch auction with per-tick FHE aggregates and pro-rata clearing</td><td><code>VeilBatchAuctionV2.sol</code></td></tr>
+      <tr><td>Escrow</td><td>ERC-7984 dual-token operator escrow on <code>placeOrder</code>, per-user <code>settle()</code> after clearing</td><td><code>VeilBatchAuctionV2.sol</code> + <code>MockConfidentialToken.sol</code></td></tr>
+      <tr><td>Lending</td><td>Encrypted collateral &amp; debt, FHE health check, single-tx liquidation with no decrypt round-trip</td><td><code>VeilLendingVault.sol</code></td></tr>
+      <tr><td>Composition</td><td>Vault collateral as Veil sell escrow &mdash; encrypted state crossing contract boundaries</td><td>both contracts, via <code>escrowToVeil</code> / <code>placeOrderFromVault</code></td></tr>
+      <tr><td>Audit</td><td>Time-bounded delegated-decrypt grants per account</td><td><code>VeilRegulatorRegistry.sol</code></td></tr>
+      <tr><td>Solver</td><td>Long-running Node loop closing batches, computing clearing, sweeping liquidations</td><td>Hardhat task <code>task:keeper:run</code></td></tr>
+    </tbody>
+  </table>
+
+  <h3>The loop</h3>
+  <div class="fig">
+    <div class="flow">
+      <div class="node"><div class="nt">Seal</div><div class="nd">side / tick / size<br>encrypted in browser</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Aggregate</div><div class="nd">per-tick buy + sell<br>volume on-chain</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Close</div><div class="nd">aggregates become<br>publicly decryptable</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Clear</div><div class="nd">keeper computes<br>uniform price + bps</div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node ok"><div class="nt">Settle</div><div class="nd">per-user fill,<br>tokens move encrypted</div></div>
+    </div>
+    <div class="figcap"><b>Figure 1.1</b> &mdash; The north-star loop. Every box is a verifiable Sepolia event:
+    an encrypted order, a per-tick aggregate, a closed batch, a clearing submission, a settled withdrawal.
+    Nothing leaks until the user chooses to decrypt their own fill.</div>
+  </div>
+
+  <p>The signature moment is the gap between &ldquo;close&rdquo; and &ldquo;clear&rdquo;: aggregates are
+  publicly decryptable, the keeper computes the one clearing tick that maximises matched volume, and submits
+  it. <em>Individual orders are never decrypted</em>. Fills are computed under FHE from the encrypted
+  <code>(side, tick, size)</code> and the clearing parameters. A trader user-decrypts their own fill handle;
+  no one else &mdash; not the keeper, not the contract owner &mdash; can read it.</p>
+
+  <div class="callout note">
+    <div class="k">Why it wins the rubric</div>
+    <p>Season 3&rsquo;s theme is <em>&ldquo;Composable Privacy Is the Key.&rdquo;</em> Veil maximises all four
+    judging criteria at once: it uses ERC-7984 (the confidential token standard), the Zama React SDK
+    (<code>useEncrypt</code>, <code>useUserDecrypt</code>, <code>usePublicDecrypt</code>), the FHEVM library
+    in Solidity (<code>FHE.add</code>, <code>FHE.select</code>, <code>FHE.makePubliclyDecryptable</code>), and
+    crucially &mdash; <strong>encrypted state crosses contract boundaries</strong>. A vault collateral
+    <code>euint64</code> becomes a CLOB sell escrow without ever being decrypted. No ZK rollup and no
+    commit-reveal scheme can do that.</p>
+  </div>
+
+  <h3>Status</h3>
+  <p>Live on <strong>Ethereum Sepolia</strong>: five Veil contracts deployed and source-verified
+  (<code>VeilBatchAuctionV2</code>, <code>VeilLendingVault</code>, <code>VeilRegulatorRegistry</code>,
+  <code>vWETH</code>, <code>vUSDC</code>). The dashboard is hosted at
+  <strong><a href="https://veil-zama.vercel.app">https://veil-zama.vercel.app</a></strong>, with five routes
+  &mdash; landing, trade, vault, audit, and a no-tokens paper sandbox &mdash; all wallet-connected and
+  user-signed. Hardhat task pack drives the V2 lifecycle (faucet, close, clear, my-fill, settle) and a
+  long-running <code>task:keeper:run</code> closes the loop unsupervised. The Foundry-style test suite
+  covers V1 and V2 across 10 tests; vault tests are the remaining credibility gap, slated next.</p>
+
+  <p class="kicker">The rest of this book walks the codebase from the chain up: the contracts that are the
+  source of truth, the off-chain layer that drives them, and the frontend that turns four encrypted primitives
+  into something a judge can watch happen.</p>
+</section>
+
+<!-- ===================== CHAPTER 2 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">2</div>
+    <div class="part-label">Part II &mdash; The On-Chain Spine</div>
+    <h2>The Sealed-Bid Uniform-Price Batch Auction</h2>
+  </div>
+
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Why batch over continuous: the no-encrypted-divisor problem that kills price&ndash;time priority</li>
+      <li>The discrete tick model and how a <code>uint8</code> tick index encrypts side + price intent</li>
+      <li>How per-tick aggregates accumulate via <code>FHE.add</code> inside <code>placeOrder</code></li>
+      <li>The pro-rata bps trick: solving fairness at the marginal tick without dividing ciphertexts</li>
+      <li>What <code>closeBatch</code> publishes, what <code>submitClearing</code> consumes</li>
+    </ul>
+  </div>
+
+  <p class="lede">FHEVM blocks division by an encrypted divisor. That single fact rules out continuous
+  matching for confidential limit orders: you cannot encrypt &ldquo;the next available counterparty's price&rdquo;
+  and divide a fill against it. Batch auctions sidestep the problem by collapsing the matching question to
+  a single computation per batch: <em>find the tick where supply meets demand</em>. Everything Veil does
+  flows from this choice.</p>
+
+  <h3>Four ticks, two orders</h3>
+  <p>A batch in V2 has <code>NUM_TICKS = 4</code> discrete price levels:
+  <code>tickPrice(t) = tickPrice0 + t &middot; tickStep</code>. The current deployment uses
+  <code>tickPrice0 = 3400</code> and <code>tickStep = 10</code>, so the four ticks are 3400, 3410, 3420, 3430
+  vUSDC per vWETH. An order is <code>(side, tickIdx, size)</code> where side is <code>ebool</code>, tick is
+  <code>euint8</code>, size is <code>euint64</code> &mdash; all three encrypted at the browser, none readable
+  on-chain.</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-comment">// VeilBatchAuctionV2.sol — the order struct</span>
+<span class="hljs-keyword">struct</span> <span class="hljs-title">Order</span> {
+    <span class="hljs-keyword">address</span> trader;
+    ebool   isBuy;       <span class="hljs-comment">// true = buy, false = sell</span>
+    euint8  tickIdx;     <span class="hljs-comment">// 0..NUM_TICKS-1</span>
+    euint64 size;        <span class="hljs-comment">// demo: 0-decimal units to keep euint64 ceiling safe</span>
+    euint64 filledSize;  <span class="hljs-comment">// computed under FHE during submitClearing</span>
+    <span class="hljs-keyword">bool</span>    settled;     <span class="hljs-comment">// idempotency guard for settle()</span>
+    <span class="hljs-keyword">address</span> marginVault; <span class="hljs-comment">// 0 = wallet escrow; nonzero = vault composition (Ch. 5)</span>
+}</code></pre>
+
+  <h3>Per-tick aggregation under FHE</h3>
+  <p>Every <code>placeOrder</code> loops over all <code>NUM_TICKS</code> per-tick aggregates and adds
+  <code>size</code> to the matching one &mdash; or zero everywhere else. The trick is <code>FHE.eq</code>
+  for the tick check, combined with <code>FHE.select</code> to gate the addition:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_aggregate</span>(<span class="hljs-params">Batch <span class="hljs-keyword">storage</span> b, ebool isBuy, euint8 tickIdx, euint64 size</span>) <span class="hljs-title"><span class="hljs-keyword">private</span></span> </span>{
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">uint8</span> t <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; t <span class="hljs-operator">&lt;</span> NUM_TICKS; t<span class="hljs-operator">+</span><span class="hljs-operator">+</span>) {
+        ebool   match_   <span class="hljs-operator">=</span> FHE.eq(tickIdx, FHE.asEuint8(t));
+        ebool   buyHere  <span class="hljs-operator">=</span> FHE.and(isBuy, match_);
+        ebool   sellHere <span class="hljs-operator">=</span> FHE.and(FHE.not(isBuy), match_);
+        euint64 addBuy   <span class="hljs-operator">=</span> FHE.select(buyHere,  size, FHE.asEuint64(<span class="hljs-number">0</span>));
+        euint64 addSell  <span class="hljs-operator">=</span> FHE.select(sellHere, size, FHE.asEuint64(<span class="hljs-number">0</span>));
+        b.buyVolume[t]   <span class="hljs-operator">=</span> FHE.add(b.buyVolume[t],  addBuy);
+        b.sellVolume[t]  <span class="hljs-operator">=</span> FHE.add(b.sellVolume[t], addSell);
+        FHE.allowThis(b.buyVolume[t]);
+        FHE.allowThis(b.sellVolume[t]);
+    }
+}</code></pre>
+
+  <p>Cost: per order, <code>NUM_TICKS &middot; (2 eq + 4 select + 2 add + 4 allow)</code>. With
+  <code>NUM_TICKS = 4</code> and viaIR-optimised Yul, the worst-case <code>placeOrder</code> fits inside the
+  HCU budget with margin to spare even when escrow is layered on (Ch. 3) and the vault composition path is
+  taken (Ch. 5). The frontend pins <code>gas: 18_000_000n</code> for direct placement and
+  <code>20_000_000n</code> for the vault path.</p>
+
+  <h3>Clearing &mdash; the pro-rata bps trick</h3>
+  <p>After <code>closeBatch</code> publishes the aggregates (Ch. 9), a keeper computes the clearing tick
+  off-chain and submits it back along with two bps fractions:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">submitClearing</span>(<span class="hljs-params">
+    <span class="hljs-keyword">uint256</span> batchId,
+    <span class="hljs-keyword">uint8</span>   clearingTick,
+    <span class="hljs-keyword">uint16</span>  marginalBuyBps,   <span class="hljs-comment">// 0..10_000</span>
+    <span class="hljs-keyword">uint16</span>  marginalSellBps   <span class="hljs-comment">// 0..10_000</span>
+</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{ ... }</code></pre>
+
+  <p>For each order, <code>filledSize</code> is computed entirely in FHE from the encrypted side, tick, and
+  size, and the <em>plaintext</em> clearing parameters. Orders strictly above the clearing tick on the buy
+  side, or strictly below on the sell side, fill fully. Orders <em>at</em> the clearing tick fill pro-rata by
+  the marginal bps:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-comment">// inside submitClearing, per order</span>
+ebool   tickEq    <span class="hljs-operator">=</span> FHE.eq(o.tickIdx, clearingEnc);
+ebool   tickGt    <span class="hljs-operator">=</span> FHE.gt(o.tickIdx, clearingEnc);
+ebool   tickLt    <span class="hljs-operator">=</span> FHE.lt(o.tickIdx, clearingEnc);
+ebool   buyAbove  <span class="hljs-operator">=</span> FHE.and(o.isBuy, tickGt);
+ebool   sellBelow <span class="hljs-operator">=</span> FHE.and(FHE.not(o.isBuy), tickLt);
+euint64 fullFill  <span class="hljs-operator">=</span> FHE.select(FHE.or(buyAbove, sellBelow), o.size, zero);
+
+ebool   buyAt     <span class="hljs-operator">=</span> FHE.and(o.isBuy, tickEq);
+ebool   sellAt    <span class="hljs-operator">=</span> FHE.and(FHE.not(o.isBuy), tickEq);
+euint64 buyMarg   <span class="hljs-operator">=</span> FHE.div(FHE.mul(o.size, <span class="hljs-keyword">uint64</span>(marginalBuyBps)),  <span class="hljs-keyword">uint64</span>(BPS_DENOM));
+euint64 sellMarg  <span class="hljs-operator">=</span> FHE.div(FHE.mul(o.size, <span class="hljs-keyword">uint64</span>(marginalSellBps)), <span class="hljs-keyword">uint64</span>(BPS_DENOM));
+euint64 margFill  <span class="hljs-operator">=</span> FHE.select(buyAt, buyMarg, FHE.select(sellAt, sellMarg, zero));
+
+o.filledSize <span class="hljs-operator">=</span> FHE.add(fullFill, margFill);</code></pre>
+
+  <p>The bps divisor is plaintext (<code>BPS_DENOM = 10_000</code>), so <code>FHE.div(_, plain)</code> is
+  legal. The bps fractions encode the matching ratio at the marginal tick &mdash; an honest keeper computes
+  them so total filled buy equals total filled sell. A dishonest one would have to claim a clearing the
+  publicly-decrypted aggregates don&rsquo;t support, which any second observer can refute.</p>
+
+  <div class="callout note">
+    <div class="k">One trade-off, named honestly</div>
+    <p>Continuous price&ndash;time priority is a casualty of this design &mdash; batch auctions intentionally
+    flatten time priority within a window. Wilson (1979) and Budish, Cramton, Shim (2015) argue this is a
+    feature, not a bug: continuous limit-order books are a race that latency arbitrageurs always win, while
+    uniform-price batches reward genuine willingness to transact. Veil is the first deployment of that
+    argument with end-to-end encrypted order intent. The cost is one cleared price per N blocks; the win is
+    that no one &mdash; sequencer, MEV searcher, or block builder &mdash; sees the book.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 3 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">3</div>
+    <div class="part-label">Part II &mdash; The On-Chain Spine</div>
+    <h2>ERC-7984 Escrow and Per-User Settlement</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The ERC-7984 operator model and why both <code>vWETH</code> and <code>vUSDC</code> are pulled on every order</li>
+      <li>The <code>_pullEscrow</code> branching: <code>FHE.select</code> gates which side actually moves</li>
+      <li>Why a buy escrow is sized at <code>maxTickPrice()</code> &mdash; the worst-case quote escrow</li>
+      <li>Per-user <code>settle()</code>: filled side + unfilled refund + idempotency</li>
+      <li>The <code>marginVault</code> per-order slot that threads the composition path through (Ch. 5)</li>
+    </ul>
+  </div>
+
+  <p class="lede">Once an order is sealed and aggregated, the contract still has to hold the trader&rsquo;s
+  collateral until clearing. Veil binds against the ERC-7984 confidential-token interface for that &mdash; the
+  same slice OpenZeppelin&rsquo;s reference implementation exposes, the same slice the live Sepolia
+  cWETH/cUSDC follow. The operator approval is one-time per token; after that the contract pulls escrow
+  inside <code>placeOrder</code> with no further user signature.</p>
+
+  <h3>The operator approval</h3>
+  <p>ERC-7984 distinguishes <em>operators</em> from EOAs: a holder grants an operator the right to call
+  <code>confidentialTransferFrom</code> on their behalf for a TTL. The dashboard&rsquo;s
+  <code>ApproveRow</code> chip signs a <code>setOperator(VEIL_V2, now + 24h)</code> for both vWETH and
+  vUSDC. After that, the user&rsquo;s wallet only ever signs <code>placeOrder</code> and <code>settle</code>
+  &mdash; the token movements happen inside those transactions.</p>
+
+  <h3>The dual-pull escrow</h3>
+  <p><code>placeOrder</code> doesn&rsquo;t know whether the order is a buy or a sell &mdash; <code>isBuy</code>
+  is an <code>ebool</code>. So both tokens are pulled on every order, and <code>FHE.select</code> sets the
+  irrelevant side to encrypted zero:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_pullEscrow</span>(<span class="hljs-params">ebool isBuy, euint64 size, <span class="hljs-keyword">address</span> marginVault</span>) <span class="hljs-title"><span class="hljs-keyword">private</span></span> </span>{
+    euint64 zero        <span class="hljs-operator">=</span> FHE.asEuint64(<span class="hljs-number">0</span>);
+    euint64 baseEscrow  <span class="hljs-operator">=</span> FHE.select(isBuy, zero,                       size);
+    euint64 quoteEscrow <span class="hljs-operator">=</span> FHE.select(isBuy, FHE.mul(size, maxTickPrice()), zero);
+
+    <span class="hljs-keyword">if</span> (marginVault <span class="hljs-operator">!</span><span class="hljs-operator">=</span> <span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>)) {                       <span class="hljs-comment">// composition path (Ch. 5)</span>
+        FHE.allowTransient(baseEscrow, marginVault);
+        IVeilMarginVault(marginVault).escrowToVeil(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, baseEscrow);
+    } <span class="hljs-keyword">else</span> {                                                <span class="hljs-comment">// direct wallet path</span>
+        FHE.allowTransient(baseEscrow, <span class="hljs-keyword">address</span>(baseToken));
+        baseToken.confidentialTransferFrom(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, <span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>), baseEscrow);
+    }
+    FHE.allowTransient(quoteEscrow, <span class="hljs-keyword">address</span>(quoteToken));
+    quoteToken.confidentialTransferFrom(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, <span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>), quoteEscrow);
+}</code></pre>
+
+  <p>A sell order encrypts <code>(baseEscrow = size, quoteEscrow = 0)</code> and the contract pulls
+  <code>size</code> vWETH plus zero vUSDC. A buy encrypts the inverse &mdash; <code>(baseEscrow = 0,
+  quoteEscrow = size &middot; maxTickPrice())</code>. The buy quote escrow is sized at the
+  <strong>worst-case price</strong>: it has to cover a fill at the highest tick (since the user&rsquo;s tick
+  is encrypted and only the keeper knows the clearing). Any overpayment refunds on settle.</p>
+
+  <div class="callout">
+    <div class="k">War story</div>
+    <div class="ti">Why <code>baseEscrow</code> isn&rsquo;t selected on the call itself</div>
+    <p>An earlier draft tried <code>FHE.select(isBuy, baseToken, vault)</code> at the call site to avoid the
+    if-branch. That doesn&rsquo;t compile: contract types aren&rsquo;t ciphertexts and a plain
+    <code>address</code> can&rsquo;t be selected by an <code>ebool</code> in EVM. The branch <em>has</em> to
+    be plaintext &mdash; <code>marginVault</code> is a plaintext per-order field, set at order placement,
+    read back at settle. The encrypted parts are the amounts.</p>
+  </div>
+
+  <h3>Settle &mdash; one user, one transaction</h3>
+  <p>After <code>submitClearing</code> writes the per-order <code>filledSize</code>, each trader can call
+  <code>settle(batchId, orderIdx)</code> independently. The function is <em>permissionless</em> for the
+  trader and gated by an idempotent flag:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">settle</span>(<span class="hljs-params"><span class="hljs-keyword">uint256</span> batchId, <span class="hljs-keyword">uint256</span> orderIdx</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    Order <span class="hljs-keyword">storage</span> o <span class="hljs-operator">=</span> _orders[batchId][orderIdx];
+    <span class="hljs-keyword">if</span> (<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span> <span class="hljs-operator">!</span><span class="hljs-operator">=</span> o.trader)              <span class="hljs-keyword">revert</span> NotOrderTrader();
+    <span class="hljs-keyword">if</span> (o.settled)                            <span class="hljs-keyword">revert</span> AlreadySettled();
+    Batch  <span class="hljs-keyword">storage</span> b <span class="hljs-operator">=</span> _batches[batchId];
+    <span class="hljs-keyword">if</span> (b.state <span class="hljs-operator">!</span><span class="hljs-operator">=</span> BatchState.Cleared)        <span class="hljs-keyword">revert</span> BatchNotCleared();
+    o.settled <span class="hljs-operator">=</span> <span class="hljs-literal">true</span>;
+
+    <span class="hljs-keyword">uint64</span>  clearingPrice <span class="hljs-operator">=</span> tickPrice(b.clearingTick);
+    <span class="hljs-keyword">uint64</span>  maxPrice      <span class="hljs-operator">=</span> maxTickPrice();
+    euint64 filled        <span class="hljs-operator">=</span> o.filledSize;
+    euint64 size          <span class="hljs-operator">=</span> o.size;
+
+    <span class="hljs-comment">// four FHE arithmetic branches, then select on the encrypted side bit</span>
+    euint64 sellQuotePayout <span class="hljs-operator">=</span> FHE.mul(filled, clearingPrice);
+    euint64 sellBaseRefund  <span class="hljs-operator">=</span> FHE.sub(size, filled);
+    euint64 buyBasePayout   <span class="hljs-operator">=</span> filled;
+    euint64 buyQuoteRefund  <span class="hljs-operator">=</span> FHE.sub(FHE.mul(size, maxPrice), FHE.mul(filled, clearingPrice));
+
+    euint64 basePayout  <span class="hljs-operator">=</span> FHE.select(o.isBuy, buyBasePayout,  sellBaseRefund);
+    euint64 quotePayout <span class="hljs-operator">=</span> FHE.select(o.isBuy, buyQuoteRefund, sellQuotePayout);
+
+    <span class="hljs-keyword">if</span> (o.marginVault <span class="hljs-operator">!</span><span class="hljs-operator">=</span> <span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>)) {                          <span class="hljs-comment">// composition path</span>
+        FHE.allowTransient(basePayout, <span class="hljs-keyword">address</span>(baseToken));
+        FHE.allowTransient(basePayout, o.marginVault);
+        IVeilMarginVault(o.marginVault).creditFromVeil(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, basePayout);
+    } <span class="hljs-keyword">else</span> {
+        FHE.allowTransient(basePayout, <span class="hljs-keyword">address</span>(baseToken));
+        baseToken.confidentialTransfer(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, basePayout);
+    }
+    FHE.allowTransient(quotePayout, <span class="hljs-keyword">address</span>(quoteToken));
+    quoteToken.confidentialTransfer(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, quotePayout);
+
+    <span class="hljs-keyword">emit</span> OrderSettled(batchId, orderIdx, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+}</code></pre>
+
+  <p>The math: a sell receives <code>filled &times; clearingPrice</code> in quote and gets
+  <code>size &minus; filled</code> base refunded. A buy receives <code>filled</code> in base and gets the
+  overpayment <code>size &times; maxPrice &minus; filled &times; clearingPrice</code> refunded in quote.
+  <code>FHE.select</code> on the encrypted <code>isBuy</code> picks the right pair without revealing the
+  side &mdash; an observer can&rsquo;t tell from the transaction whether the trader bought or sold.</p>
+</section>
+
+<!-- ===================== CHAPTER 4 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">4</div>
+    <div class="part-label">Part II &mdash; The On-Chain Spine</div>
+    <h2>VeilLendingVault &mdash; Encrypted Health Factor</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Why a confidential lending vault needs a fundamentally different health model than Aave</li>
+      <li>The <code>Position</code> struct and the lazy <code>_ensurePosition</code> pattern</li>
+      <li>How <code>_maxBorrow</code> uses plaintext divisors to fit inside FHEVM&rsquo;s no-encrypted-divisor rule</li>
+      <li>The clamp-to-zero pattern that makes over-borrows silently safe</li>
+      <li>Single-tx liquidation via <code>FHE.gt</code> + <code>FHE.select</code> &mdash; no decrypt round-trip</li>
+    </ul>
+  </div>
+
+  <p class="lede">Aave-style protocols compute a public health factor and let anyone liquidate when it
+  drops below 1. Veil&rsquo;s vault holds collateral and debt as ciphertexts, so the health factor
+  itself is encrypted. The contract still has to act on it &mdash; deposit, borrow, withdraw, liquidate
+  &mdash; without ever decrypting it. The whole vault is an exercise in computing booleans under FHE and
+  branching on them via <code>FHE.select</code>.</p>
+
+  <h3>The position</h3>
+<pre><code class="hljs lang-solidity"><span class="hljs-keyword">struct</span> <span class="hljs-title">Position</span> {
+    euint64 collateral;   <span class="hljs-comment">// vWETH posted</span>
+    euint64 debt;         <span class="hljs-comment">// vUSDC borrowed</span>
+    <span class="hljs-keyword">bool</span>    exists;       <span class="hljs-comment">// lazy init flag</span>
+}
+<span class="hljs-keyword">mapping</span>(<span class="hljs-keyword">address</span> <span class="hljs-operator">=</span><span class="hljs-operator">&gt;</span> Position) <span class="hljs-keyword">internal</span> positions;</code></pre>
+
+  <p>Parameters at deploy: <code>price = 3400</code> vUSDC per vWETH (plaintext, oracle-free for the demo),
+  <code>ltvBps = 7500</code> (75%), <code>liquidationBonusBps = 500</code> (5%, unused in the simplified
+  liquidation). The price is plaintext on purpose &mdash; an encrypted oracle adds two layers of complexity
+  to the demo without changing the FHE story, and an Aave-style price feed would still be a plaintext read
+  inside <code>_maxBorrow</code>.</p>
+
+  <h3>The plaintext-divisor max-borrow</h3>
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">_maxBorrow</span>(<span class="hljs-params">euint64 collateral</span>) <span class="hljs-title"><span class="hljs-keyword">internal</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params">euint64</span>) </span>{
+    euint64 collateralValue <span class="hljs-operator">=</span> FHE.mul(collateral, price);                    <span class="hljs-comment">// euint64 * uint64</span>
+    <span class="hljs-keyword">return</span>         FHE.div(FHE.mul(collateralValue, <span class="hljs-keyword">uint64</span>(ltvBps)), <span class="hljs-keyword">uint64</span>(BPS_DENOM));
+}</code></pre>
+
+  <p>Three operations, all FHE-legal: <code>mul(euint64, uint64)</code> is a scalar multiplication,
+  <code>div(euint64, uint64)</code> is a scalar division with the plaintext on the right. The total HCU
+  cost per call is roughly 365k + 365k + 715k &asymp; 1.4M &mdash; well inside budget for a transaction that
+  also does an <code>FHE.le</code> check and an <code>FHE.select</code>.</p>
+
+  <h3>Clamp-to-zero everywhere</h3>
+  <p>Every position-changing function follows the same pattern: compute the request, check whether it would
+  break an invariant under FHE, select between the request and encrypted zero. Over-borrow, over-withdraw,
+  and ill-typed inputs all become silent no-ops &mdash; the user gets a successful transaction with no
+  state change, instead of a revert that would leak which invariant tripped.</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">borrow</span>(<span class="hljs-params">externalEuint64 amountExt, <span class="hljs-keyword">bytes</span> <span class="hljs-keyword">calldata</span> proof</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    Position <span class="hljs-keyword">storage</span> p <span class="hljs-operator">=</span> _ensurePosition(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+    euint64 requested  <span class="hljs-operator">=</span> FHE.fromExternal(amountExt, proof);
+
+    euint64 maxBorrow         <span class="hljs-operator">=</span> _maxBorrow(p.collateral);
+    euint64 newDebtRequested  <span class="hljs-operator">=</span> FHE.add(p.debt, requested);
+    ebool   fits              <span class="hljs-operator">=</span> FHE.le(newDebtRequested, maxBorrow);
+
+    euint64 actual <span class="hljs-operator">=</span> FHE.select(fits, requested, FHE.asEuint64(<span class="hljs-number">0</span>));  <span class="hljs-comment">// clamp</span>
+    p.debt         <span class="hljs-operator">=</span> FHE.add(p.debt, actual);
+
+    FHE.allowTransient(actual, <span class="hljs-keyword">address</span>(debtToken));
+    debtToken.confidentialTransfer(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, actual);
+    _grant(p.debt, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+    <span class="hljs-keyword">emit</span> Borrowed(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+}</code></pre>
+
+  <p>If the user borrows above their LTV, <code>fits</code> is <code>false</code>, <code>actual</code> is
+  encrypted zero, the transfer moves zero vUSDC, and the debt position is unchanged. The transaction still
+  succeeds &mdash; on-chain it&rsquo;s indistinguishable from a successful small borrow. The trader
+  user-decrypts their debt handle to see what actually happened.</p>
+
+  <div class="callout">
+    <div class="k">War story</div>
+    <div class="ti">The first deposit that reverted</div>
+    <p>An early version of <code>withdraw</code>, <code>repay</code>, and <code>liquidate</code> reverted
+    with a <code>NoPosition</code> custom error when called before any deposit. That meant the very first
+    user click on <code>/app/vault</code> &mdash; before they&rsquo;d ever deposited &mdash; threw a generic
+    MetaMask &ldquo;transaction likely to fail&rdquo; warning. The fix was one line per function: replace
+    the revert with a call to <code>_ensurePosition(msg.sender)</code>, which lazily initialises an empty
+    <code>Position</code> with encrypted zero collateral and zero debt. After that, withdraw on a fresh
+    account just no-ops cleanly &mdash; consistent with the clamp-to-zero pattern everywhere else, no more
+    surprise reverts.</p>
+  </div>
+
+  <h3>Single-tx liquidation</h3>
+  <p>The cleverest part is liquidation. A naive design would: (1) compute <code>unhealthy</code> as an
+  encrypted boolean, (2) decrypt it via a relayer round-trip, (3) if true, seize collateral in a follow-up
+  transaction. Three transactions, two block delays, and the unhealthy bit is publicly visible during the
+  round-trip &mdash; defeating the point.</p>
+
+  <p>Veil collapses it to one transaction with no decrypt:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">liquidate</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> borrower</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    Position <span class="hljs-keyword">storage</span> p <span class="hljs-operator">=</span> _ensurePosition(borrower);
+
+    euint64 maxBorrow <span class="hljs-operator">=</span> _maxBorrow(p.collateral);
+    ebool   unhealthy <span class="hljs-operator">=</span> FHE.gt(p.debt, maxBorrow);
+
+    euint64 seizedCollateral <span class="hljs-operator">=</span> FHE.select(unhealthy, p.collateral, FHE.asEuint64(<span class="hljs-number">0</span>));
+    euint64 clearedDebt      <span class="hljs-operator">=</span> FHE.select(unhealthy, p.debt,       FHE.asEuint64(<span class="hljs-number">0</span>));
+
+    p.collateral <span class="hljs-operator">=</span> FHE.sub(p.collateral, seizedCollateral);
+    p.debt       <span class="hljs-operator">=</span> FHE.sub(p.debt,       clearedDebt);
+
+    FHE.allowTransient(seizedCollateral, <span class="hljs-keyword">address</span>(collateralToken));
+    collateralToken.confidentialTransfer(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, seizedCollateral);
+    _grant(p.collateral, borrower);
+    _grant(p.debt,       borrower);
+    <span class="hljs-keyword">emit</span> Liquidated(borrower, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+}</code></pre>
+
+  <p>If <code>unhealthy</code> is true, the keeper sweeps the full collateral and the debt is wiped to zero
+  in the same FHE statement. If it&rsquo;s false, both seize and clear are encrypted zero &mdash; the
+  transaction succeeds and changes nothing. The keeper can call <code>liquidate</code> on every known
+  borrower every block; only the unhealthy ones produce real state changes, and which-was-which is invisible
+  to anyone who didn&rsquo;t do the FHE.</p>
+</section>
+
+<!-- ===================== CHAPTER 5 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">5</div>
+    <div class="part-label">Part II &mdash; The On-Chain Spine</div>
+    <h2>Vault &harr; CLOB Composition</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Why this chapter is the Season 3 moat: encrypted state crossing contract boundaries</li>
+      <li>The vault&rsquo;s ERC-7984-style operator interface and the <code>escrowToVeil</code> entry point</li>
+      <li>How <code>placeOrderFromVault</code> branches V2&rsquo;s escrow source without changing the order semantics</li>
+      <li>The settle return path: <code>creditFromVeil</code> credits unfilled remainder back to vault collateral</li>
+      <li>Why both sides of the round-trip happen without a single decrypt</li>
+    </ul>
+  </div>
+
+  <p class="lede">Up to here the four primitives compose only weakly &mdash; they share a token but
+  not state. This chapter is where they chain: a user&rsquo;s encrypted vault collateral becomes a
+  Veil sell escrow without ever being decrypted, and the unfilled remainder returns to vault collateral on
+  settle &mdash; also without a decrypt. The encrypted state of one contract flows directly into the
+  encrypted state of another. This is what Season 3&rsquo;s theme literally means.</p>
+
+  <h3>The vault, now an ERC-7984-ish counterparty</h3>
+  <p>The vault grows three new function families: operator semantics, a Veil-only pull, a Veil-only push.</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-comment">// VeilLendingVault.sol — additions</span>
+<span class="hljs-keyword">mapping</span>(<span class="hljs-keyword">address</span> <span class="hljs-operator">=</span><span class="hljs-operator">&gt;</span> <span class="hljs-keyword">mapping</span>(<span class="hljs-keyword">address</span> <span class="hljs-operator">=</span><span class="hljs-operator">&gt;</span> <span class="hljs-keyword">uint48</span>)) <span class="hljs-keyword">internal</span> _operatorUntil;
+
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setOperator</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> operator, <span class="hljs-keyword">uint48</span> until</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    _operatorUntil[<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>][operator] <span class="hljs-operator">=</span> until;
+}
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isOperator</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> h, <span class="hljs-keyword">address</span> s</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bool</span></span>) </span>{
+    <span class="hljs-keyword">return</span> _operatorUntil[h][s] <span class="hljs-operator">&gt;</span><span class="hljs-operator">=</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>;
+}
+
+<span class="hljs-comment">/// @notice Veil pulls a sell-side base escrow out of the user&amp;#x27;s collateral.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">escrowToVeil</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> user, euint64 amount</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params">euint64</span>) </span>{
+    <span class="hljs-built_in">require</span>(_operatorUntil[user][<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>] <span class="hljs-operator">&gt;</span><span class="hljs-operator">=</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>, <span class="hljs-string">&quot;not operator&quot;</span>);
+    Position <span class="hljs-keyword">storage</span> p <span class="hljs-operator">=</span> _ensurePosition(user);
+
+    ebool   canCover  <span class="hljs-operator">=</span> FHE.le(amount, p.collateral);
+    euint64 capped    <span class="hljs-operator">=</span> FHE.select(canCover, amount, FHE.asEuint64(<span class="hljs-number">0</span>));
+
+    euint64 newColl   <span class="hljs-operator">=</span> FHE.sub(p.collateral, capped);
+    euint64 maxAfter  <span class="hljs-operator">=</span> _maxBorrow(newColl);
+    ebool   safe      <span class="hljs-operator">=</span> FHE.le(p.debt, maxAfter);
+    euint64 actual    <span class="hljs-operator">=</span> FHE.select(safe, capped, FHE.asEuint64(<span class="hljs-number">0</span>));
+
+    p.collateral <span class="hljs-operator">=</span> FHE.sub(p.collateral, actual);
+    FHE.allowTransient(actual, <span class="hljs-keyword">address</span>(collateralToken));
+    collateralToken.confidentialTransfer(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, actual);  <span class="hljs-comment">// vWETH lands at Veil</span>
+
+    _grant(p.collateral, user);
+    FHE.allowThis(actual); FHE.allow(actual, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+    <span class="hljs-keyword">emit</span> MarginEscrow(user, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+    <span class="hljs-keyword">return</span> actual;
+}
+
+<span class="hljs-comment">/// @notice Veil credits an unfilled remainder back into the user&amp;#x27;s collateral.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">creditFromVeil</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> user, euint64 amount</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    <span class="hljs-built_in">require</span>(_operatorUntil[user][<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>] <span class="hljs-operator">&gt;</span><span class="hljs-operator">=</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>, <span class="hljs-string">&quot;not operator&quot;</span>);
+    Position <span class="hljs-keyword">storage</span> p <span class="hljs-operator">=</span> _ensurePosition(user);
+    FHE.allowTransient(amount, <span class="hljs-keyword">address</span>(collateralToken));
+    collateralToken.confidentialTransferFrom(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, <span class="hljs-keyword">address</span>(<span class="hljs-built_in">this</span>), amount);  <span class="hljs-comment">// Veil ships vWETH back</span>
+    p.collateral <span class="hljs-operator">=</span> FHE.add(p.collateral, amount);
+    _grant(p.collateral, user);
+    <span class="hljs-keyword">emit</span> MarginCredited(user, <span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>);
+}</code></pre>
+
+  <p>Note the two clamps in <code>escrowToVeil</code>: first against
+  <code>p.collateral</code> (can&rsquo;t lend more than you have), then against post-pull health
+  (can&rsquo;t lend so much that your existing debt is now uncollateralised). Both clamps are FHE.le checks
+  that select between the request and encrypted zero &mdash; same pattern as the vault&rsquo;s direct
+  withdraw.</p>
+
+  <h3>placeOrderFromVault on V2</h3>
+  <p>V2 grows one new entry point and one one-shot authorize:</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">placeOrderFromVault</span>(<span class="hljs-params">
+    externalEbool sideExt, externalEuint8 tickExt, externalEuint64 sizeExt,
+    <span class="hljs-keyword">bytes</span> <span class="hljs-keyword">calldata</span> proof, <span class="hljs-keyword">address</span> marginVault
+</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    <span class="hljs-built_in">require</span>(marginVault <span class="hljs-operator">!</span><span class="hljs-operator">=</span> <span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>), <span class="hljs-string">&quot;vault=0&quot;</span>);
+    _placeOrder(sideExt, tickExt, sizeExt, proof, marginVault);
+}
+
+<span class="hljs-comment">/// One-shot grant so the vault can pull vWETH back from Veil on settle.</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">authorizeMarginVault</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> marginVault</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    <span class="hljs-built_in">require</span>(marginVault <span class="hljs-operator">!</span><span class="hljs-operator">=</span> <span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>), <span class="hljs-string">&quot;vault=0&quot;</span>);
+    baseToken.setOperator(marginVault, <span class="hljs-keyword">type</span>(<span class="hljs-keyword">uint48</span>).<span class="hljs-built_in">max</span>);
+}</code></pre>
+
+  <p>Under the hood <code>placeOrder</code> and <code>placeOrderFromVault</code> share an internal
+  <code>_placeOrder</code> that takes a <code>marginVault</code> parameter (0 for direct, a vault address
+  for composition). The aggregation logic is identical &mdash; the only difference is which contract pulls
+  the base escrow in <code>_pullEscrow</code> (Ch. 3) and which is credited on settle. The
+  <code>marginVault</code> address is stored per-order so settle can route the return path correctly.</p>
+
+  <h3>The round-trip, with no decrypt</h3>
+  <div class="fig">
+    <div class="flow">
+      <div class="node"><div class="nt">Deposit</div><div class="nd">user signs<br><code>vault.deposit</code></div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Approve V2</div><div class="nd">user signs<br><code>vault.setOperator(V2)</code></div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Sell from vault</div><div class="nd">user signs<br><code>placeOrderFromVault</code></div></div>
+      <div class="arrow">&rarr;</div>
+      <div class="node"><div class="nt">Settle</div><div class="nd">filled vUSDC &rarr; wallet,<br>unfilled vWETH &rarr; vault</div></div>
+    </div>
+    <div class="figcap"><b>Figure 5.1</b> &mdash; The composition round-trip. The user&rsquo;s vWETH never
+    leaves the FHE domain: it&rsquo;s pulled from encrypted vault collateral, escrowed in Veil&rsquo;s
+    encrypted balance, partially filled (encrypted size), and the unfilled remainder is pushed straight
+    back to encrypted vault collateral. No decrypt anywhere in the chain.</div>
+  </div>
+
+  <div class="callout note">
+    <div class="k">Why no other privacy primitive can do this</div>
+    <p>A ZK rollup with private orders has to decrypt at match time for the matching engine to function.
+    Sequencer-secrecy chains decrypt the moment they sequence. Both leak. FHE&rsquo;s entire pitch is
+    that the contract can compute on ciphertexts &mdash; so the matching engine, the operator check, the
+    health gate, and the return credit are all just functions of encrypted handles, with the answers also
+    encrypted. The composition isn&rsquo;t hard <em>because</em> FHE; it&rsquo;s the literal first thing
+    FHE makes possible.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 6 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">6</div>
+    <div class="part-label">Part II &mdash; The On-Chain Spine</div>
+    <h2>VeilRegulatorRegistry, Deployment &amp; Tests</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>How time-bounded delegated decryption gives auditors access without putting it on-chain</li>
+      <li>What <code>setRegulator</code> records and what <code>isAuditorOf</code> answers</li>
+      <li>The Hardhat deploy pipeline: V2, vault (with post-deploy authorize), regulator, mock tokens</li>
+      <li>Test coverage today: 10 V2 tests, the gap to close on the vault, and how composition is currently exercised</li>
+    </ul>
+  </div>
+
+  <p class="lede">Veil&rsquo;s privacy story is complete only with a credible answer to the compliance
+  question: <em>who gets to see this, and how is that controlled?</em> The regulator registry is the
+  smallest possible answer &mdash; a directory of per-user time-bounded grants that the off-chain
+  decryption flow consults. The contract is one struct, two writes, two reads, and 80 lines.</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-class"><span class="hljs-keyword">contract</span> <span class="hljs-title">VeilRegulatorRegistry</span> </span>{
+    <span class="hljs-keyword">struct</span> <span class="hljs-title">Grant</span> { <span class="hljs-keyword">address</span> regulator; <span class="hljs-keyword">uint48</span> until; }
+    <span class="hljs-keyword">mapping</span>(<span class="hljs-keyword">address</span> <span class="hljs-operator">=</span><span class="hljs-operator">&gt;</span> Grant) <span class="hljs-keyword">internal</span> _grants;
+
+    <span class="hljs-function"><span class="hljs-keyword">event</span> <span class="hljs-title">RegulatorSet</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> <span class="hljs-keyword">indexed</span> user, <span class="hljs-keyword">address</span> <span class="hljs-keyword">indexed</span> regulator, <span class="hljs-keyword">uint48</span> until</span>)</span>;
+    <span class="hljs-function"><span class="hljs-keyword">event</span> <span class="hljs-title">RegulatorRevoked</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> <span class="hljs-keyword">indexed</span> user, <span class="hljs-keyword">address</span> <span class="hljs-keyword">indexed</span> regulator</span>)</span>;
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">setRegulator</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> regulator, <span class="hljs-keyword">uint48</span> until</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+        <span class="hljs-built_in">require</span>(regulator <span class="hljs-operator">!</span><span class="hljs-operator">=</span> <span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>), <span class="hljs-string">&quot;0&quot;</span>);
+        <span class="hljs-built_in">require</span>(until <span class="hljs-operator">&gt;</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>,  <span class="hljs-string">&quot;ttl&quot;</span>);
+        _grants[<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>] <span class="hljs-operator">=</span> Grant({regulator: regulator, until: until});
+        <span class="hljs-keyword">emit</span> RegulatorSet(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, regulator, until);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">revokeRegulator</span>(<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+        Grant <span class="hljs-keyword">memory</span> g <span class="hljs-operator">=</span> _grants[<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>];
+        <span class="hljs-keyword">delete</span> _grants[<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>];
+        <span class="hljs-keyword">emit</span> RegulatorRevoked(<span class="hljs-built_in">msg</span>.<span class="hljs-built_in">sender</span>, g.regulator);
+    }
+
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">regulatorOf</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> u</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">address</span>, <span class="hljs-keyword">uint48</span></span>) </span>{
+        Grant <span class="hljs-keyword">memory</span> g <span class="hljs-operator">=</span> _grants[u];
+        <span class="hljs-keyword">if</span> (g.until <span class="hljs-operator">&lt;</span><span class="hljs-operator">=</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>) <span class="hljs-keyword">return</span> (<span class="hljs-keyword">address</span>(<span class="hljs-number">0</span>), <span class="hljs-number">0</span>);
+        <span class="hljs-keyword">return</span> (g.regulator, g.until);
+    }
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">isAuditorOf</span>(<span class="hljs-params"><span class="hljs-keyword">address</span> u, <span class="hljs-keyword">address</span> a</span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> <span class="hljs-title"><span class="hljs-keyword">view</span></span> <span class="hljs-title"><span class="hljs-keyword">returns</span></span> (<span class="hljs-params"><span class="hljs-keyword">bool</span></span>) </span>{
+        Grant <span class="hljs-keyword">memory</span> g <span class="hljs-operator">=</span> _grants[u];
+        <span class="hljs-keyword">return</span> g.regulator <span class="hljs-operator">=</span><span class="hljs-operator">=</span> a <span class="hljs-operator">&amp;</span><span class="hljs-operator">&amp;</span> g.until <span class="hljs-operator">&gt;</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">timestamp</span>;
+    }
+}</code></pre>
+
+  <p>The registry is a directory; the actual decryption happens via Zama&rsquo;s delegated-decryption flow.
+  The user signs an EIP-712 message granting the regulator&rsquo;s key the ability to decrypt their handles
+  on the relayer, with an expiry. The registry mirrors that expiry on-chain so any contract or off-chain
+  observer can ask &ldquo;does <em>X</em> currently audit <em>Y</em>?&rdquo; without ever seeing the
+  decrypted data.</p>
+
+  <h3>Deployment</h3>
+  <p>Three Hardhat-deploy scripts: <code>deploy.ts</code> handles V1, <code>deploy-v2.ts</code> handles
+  vWETH + vUSDC + V2, <code>deploy-vault.ts</code> handles vault + registry plus a post-deploy
+  <code>authorizeMarginVault</code> call so the composition operator is live without manual intervention:</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// deploy-vault.ts</span>
+<span class="hljs-keyword">const</span> vault = <span class="hljs-keyword">await</span> <span class="hljs-title function_">deploy</span>(<span class="hljs-string">&quot;VeilLendingVault&quot;</span>, { ... });
+<span class="hljs-keyword">const</span> reg   = <span class="hljs-keyword">await</span> <span class="hljs-title function_">deploy</span>(<span class="hljs-string">&quot;VeilRegulatorRegistry&quot;</span>, { ... });
+
+<span class="hljs-keyword">if</span> (vault.<span class="hljs-property">newlyDeployed</span>) {
+    <span class="hljs-keyword">const</span> veil = <span class="hljs-keyword">await</span> hre.<span class="hljs-property">ethers</span>.<span class="hljs-title function_">getContractAt</span>(<span class="hljs-string">&quot;VeilBatchAuctionV2&quot;</span>, v2Dep.<span class="hljs-property">address</span>);
+    <span class="hljs-keyword">const</span> tx   = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">authorizeMarginVault</span>(vault.<span class="hljs-property">address</span>);
+    <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>();
+}</code></pre>
+
+  <p>Etherscan verification uses Sepolia&rsquo;s standard Etherscan API: <code>npx hardhat verify --network sepolia
+  &lt;addr&gt;</code>. All five contracts source-verified after a clean deploy. The compiler is solc
+  0.8.27 with viaIR enabled (FHE stack depth pushes the standard codegen past the limit on
+  <code>submitClearing</code>).</p>
+
+  <h3>Tests</h3>
+  <p>The Foundry suite covers V1 and V2 in 10 tests: balanced clearing, buy-pro-rata, sell-pro-rata, the
+  full view-and-revert path, and end-to-end placeOrder &rarr; close &rarr; clear &rarr; settle on the FHEVM
+  mock. The vault tests are the credibility gap to close next &mdash; depositing, borrowing,
+  withdraw-blocks-under-debt, the FHE.le clamp at the boundary, and the composition round-trip with
+  <code>escrowToVeil</code> + <code>creditFromVeil</code>.</p>
+
+  <div class="callout note">
+    <div class="k">Sandbox note</div>
+    <p>The Sepolia keeper task and the front-end deployment have been exercised in concert &mdash; what
+    they prove right now is contract-correctness across the happy path, not adversarial scenarios. The
+    vulnerability sweep is its own line item: top of the list is <code>authorizeMarginVault</code>&rsquo;s
+    permissionless surface (anyone can grant any address operator status on V2&rsquo;s vWETH balance,
+    which is sound under the operator-gated <code>escrowToVeil</code> but worth a second look), and the
+    <code>_maxBorrow</code> intermediate value range under maximum-collateral inputs.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 7 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">7</div>
+    <div class="part-label">Part III &mdash; The Off-Chain Layer</div>
+    <h2>The Off-Chain Clearing Solver</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Why clearing is off-chain even though aggregates are public &mdash; the cost story</li>
+      <li>The <code>computeClearing</code> algorithm: iterate ticks, find supply &equals; demand, compute marginal bps</li>
+      <li>Edge cases: no demand, no supply, perfect cross, fractional crosses</li>
+      <li>How the keeper turns this into a single <code>submitClearing</code> call</li>
+    </ul>
+  </div>
+
+  <p class="lede">The clearing computation is plaintext arithmetic over the publicly-decrypted aggregates.
+  Putting it on-chain would be redundant &mdash; anyone can recompute it from the same public data &mdash;
+  and expensive. The contract instead trusts the keeper to submit a clearing, and any honest second
+  observer can refute a dishonest one by recomputing.</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// tasks/Veil.ts — off-chain clearing</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">computeClearing</span>(<span class="hljs-params"><span class="hljs-attr">buyVol</span>: <span class="hljs-built_in">bigint</span>[], <span class="hljs-attr">sellVol</span>: <span class="hljs-built_in">bigint</span>[]</span>) {
+  <span class="hljs-keyword">const</span> <span class="hljs-variable constant_">NUM</span> = buyVol.<span class="hljs-property">length</span>;
+  <span class="hljs-keyword">const</span> <span class="hljs-variable constant_">BPS</span> = <span class="hljs-number">10_000n</span>;
+  <span class="hljs-keyword">let</span> best = { <span class="hljs-attr">tick</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">buyBps</span>: <span class="hljs-number">10_000</span>, <span class="hljs-attr">sellBps</span>: <span class="hljs-number">10_000</span>, <span class="hljs-attr">matched</span>: <span class="hljs-number">0n</span> };
+
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> c = <span class="hljs-number">0</span>; c &lt; <span class="hljs-variable constant_">NUM</span>; c++) {
+    <span class="hljs-keyword">let</span> demandAtOrAbove = <span class="hljs-number">0n</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> t = c; t &lt; <span class="hljs-variable constant_">NUM</span>; t++) demandAtOrAbove += buyVol[t];
+    <span class="hljs-keyword">let</span> supplyAtOrBelow = <span class="hljs-number">0n</span>;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> t = <span class="hljs-number">0</span>; t &lt;= c; t++) supplyAtOrBelow += sellVol[t];
+
+    <span class="hljs-keyword">const</span> matched = demandAtOrAbove &lt; supplyAtOrBelow ? demandAtOrAbove : supplyAtOrBelow;
+    <span class="hljs-keyword">if</span> (matched &gt; best.<span class="hljs-property">matched</span>) {
+      <span class="hljs-comment">// pro-rata at the marginal tick</span>
+      <span class="hljs-keyword">const</span> demandAbove = demandAtOrAbove - buyVol[c];   <span class="hljs-comment">// strictly above</span>
+      <span class="hljs-keyword">const</span> supplyBelow = supplyAtOrBelow - sellVol[c];  <span class="hljs-comment">// strictly below</span>
+      <span class="hljs-keyword">const</span> buyBpsNeed  = matched - demandAbove &gt; <span class="hljs-number">0n</span>
+        ? <span class="hljs-title class_">Number</span>((matched - demandAbove) * <span class="hljs-variable constant_">BPS</span> / (buyVol[c] || <span class="hljs-number">1n</span>)) : <span class="hljs-number">0</span>;
+      <span class="hljs-keyword">const</span> sellBpsNeed = matched - supplyBelow &gt; <span class="hljs-number">0n</span>
+        ? <span class="hljs-title class_">Number</span>((matched - supplyBelow) * <span class="hljs-variable constant_">BPS</span> / (sellVol[c] || <span class="hljs-number">1n</span>)) : <span class="hljs-number">0</span>;
+      best = { <span class="hljs-attr">tick</span>: c, <span class="hljs-attr">buyBps</span>: <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">10_000</span>, buyBpsNeed),
+                         <span class="hljs-attr">sellBps</span>: <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">min</span>(<span class="hljs-number">10_000</span>, sellBpsNeed),
+                         matched };
+    }
+  }
+  <span class="hljs-keyword">return</span> best;
+}</code></pre>
+
+  <p>Iterate the candidate clearing tick from 0 to NUM_TICKS&minus;1. At each candidate, total demand at or
+  above (everything that would trade at this price or higher) and total supply at or below; matched volume
+  is the min. The candidate that maximises matched volume wins. The marginal bps are the fraction of the
+  candidate tick&rsquo;s buy or sell volume actually needed to balance the cross &mdash; computed as
+  <code>(matched &minus; strictly-above-or-below) &middot; 10_000 / volume_at_tick</code>, capped at 100%.</p>
+
+  <div class="callout">
+    <div class="k">War story</div>
+    <div class="ti">An empty batch is a legal batch</div>
+    <p>Two early batches on Sepolia were closed empty &mdash; no one had placed orders. The first version of
+    the keeper called <code>computeClearing</code> on all-zero aggregates and submitted
+    <code>(tick=0, buyBps=10_000, sellBps=10_000, matched=0)</code>. That&rsquo;s harmless &mdash; the FHE
+    settle math zeros everything out &mdash; but it cost a real transaction. The fixed keeper just skips
+    submission when matched volume is zero. The contract still moves through <code>Closed</code> &rarr;
+    <code>Cleared</code> only when there&rsquo;s something to clear; otherwise the batch stays Closed and
+    the next open batch starts on schedule.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 8 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">8</div>
+    <div class="part-label">Part III &mdash; The Off-Chain Layer</div>
+    <h2>The Keeper Bot</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Why the keeper is a Hardhat task today, not a deployed Node service</li>
+      <li>The two responsibilities: lifecycle (close + clear) and liquidation sweep</li>
+      <li>The 12-second poll loop and the borrower-discovery via <code>PositionOpened</code> events</li>
+      <li>How a single signer key drives both contracts atomically</li>
+    </ul>
+  </div>
+
+  <p class="lede"><code>task:keeper:run</code> is a long-running Hardhat task that wakes every 12 seconds,
+  ticks the V2 batch lifecycle, and optionally sweeps the vault for liquidations. It runs on the deployer
+  key for now &mdash; one key, three responsibilities, no infrastructure. A deployed Render/Fly bot is the
+  next iteration; the current setup ships and demos.</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// tasks/Keeper.ts — the one-tick function</span>
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">tickV2</span>(<span class="hljs-params"><span class="hljs-attr">hre</span>: <span class="hljs-built_in">any</span>, <span class="hljs-attr">veil</span>: <span class="hljs-built_in">any</span>, <span class="hljs-attr">signer</span>: <span class="hljs-built_in">any</span></span>) {
+  <span class="hljs-keyword">const</span> batchId   = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">currentBatchId</span>();
+  <span class="hljs-keyword">const</span> [, closeBlock, state] = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">getBatchState</span>(batchId);
+  <span class="hljs-keyword">const</span> now       = <span class="hljs-keyword">await</span> hre.<span class="hljs-property">ethers</span>.<span class="hljs-property">provider</span>.<span class="hljs-title function_">getBlockNumber</span>();
+
+  <span class="hljs-keyword">if</span> (<span class="hljs-title class_">Number</span>(state) === <span class="hljs-number">0</span> &amp;&amp; now &gt;= <span class="hljs-title class_">Number</span>(closeBlock)) {
+    <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">connect</span>(signer).<span class="hljs-title function_">closeBatch</span>();
+    <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>();
+  }
+  <span class="hljs-keyword">const</span> prev = batchId &gt; <span class="hljs-number">0n</span> ? batchId - <span class="hljs-number">1n</span> : <span class="hljs-number">0n</span>;
+  <span class="hljs-keyword">const</span> [, , prevState] = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">getBatchState</span>(prev);
+  <span class="hljs-keyword">if</span> (<span class="hljs-title class_">Number</span>(prevState) !== <span class="hljs-number">1</span>) <span class="hljs-keyword">return</span>;          <span class="hljs-comment">// already cleared, or no orders</span>
+
+  <span class="hljs-keyword">const</span> <span class="hljs-variable constant_">NUM_TICKS</span> = <span class="hljs-title class_">Number</span>(<span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">NUM_TICKS</span>());
+  <span class="hljs-keyword">const</span> <span class="hljs-attr">buyVol</span>: <span class="hljs-built_in">bigint</span>[]  = [];
+  <span class="hljs-keyword">const</span> <span class="hljs-attr">sellVol</span>: <span class="hljs-built_in">bigint</span>[] = [];
+  <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> t = <span class="hljs-number">0</span>; t &lt; <span class="hljs-variable constant_">NUM_TICKS</span>; t++) {
+    <span class="hljs-keyword">const</span> bh = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">getBuyVolume</span>(prev, t);
+    <span class="hljs-keyword">const</span> sh = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">getSellVolume</span>(prev, t);
+    buyVol.<span class="hljs-title function_">push</span>(bh  === <span class="hljs-variable constant_">ZERO_HANDLE</span> ? <span class="hljs-number">0n</span> : <span class="hljs-keyword">await</span> fhevm.<span class="hljs-title function_">publicDecryptEuint</span>(<span class="hljs-title class_">FhevmType</span>.<span class="hljs-property">euint64</span>, bh));
+    sellVol.<span class="hljs-title function_">push</span>(sh === <span class="hljs-variable constant_">ZERO_HANDLE</span> ? <span class="hljs-number">0n</span> : <span class="hljs-keyword">await</span> fhevm.<span class="hljs-title function_">publicDecryptEuint</span>(<span class="hljs-title class_">FhevmType</span>.<span class="hljs-property">euint64</span>, sh));
+  }
+  <span class="hljs-keyword">const</span> c = <span class="hljs-title function_">computeClearing</span>(buyVol, sellVol);
+  <span class="hljs-keyword">const</span> tx = <span class="hljs-keyword">await</span> veil.<span class="hljs-title function_">connect</span>(signer).<span class="hljs-title function_">submitClearing</span>(prev, c.<span class="hljs-property">tick</span>, c.<span class="hljs-property">buyBps</span>, c.<span class="hljs-property">sellBps</span>);
+  <span class="hljs-keyword">await</span> tx.<span class="hljs-title function_">wait</span>();
+}</code></pre>
+
+  <p>The same loop body runs as <code>task:keeper:tick</code> (single iteration, for cron-style runs) and
+  <code>task:keeper:run</code> (forever). A <code>--liquidate true</code> flag adds a second pass that
+  reads <code>PositionOpened</code> events from the vault to discover borrowers, then calls
+  <code>liquidate</code> on each &mdash; the FHE.select clamp inside the vault means the call is a no-op
+  for healthy positions, and only the genuinely unhealthy ones produce real seizures.</p>
+
+  <div class="callout note">
+    <div class="k">Why one process, not a queue</div>
+    <p>A production protocol with hundreds of borrowers would split liquidation across multiple keepers and
+    add backoff. For the demo, one sequential process is sufficient and easier to reason about &mdash;
+    Sepolia gas is free, the per-block discovery is cheap, and the worst case is a 12-second delay before
+    a liquidation lands. The architecture admits more keepers trivially: the vault&rsquo;s
+    <code>liquidate</code> is permissionless, so any keeper can sweep any subset of borrowers without
+    coordination.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 9 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">9</div>
+    <div class="part-label">Part III &mdash; The Off-Chain Layer</div>
+    <h2>Aggregate Public Decryption</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The Zama public-decrypt flow: <code>FHE.makePubliclyDecryptable</code> &rarr; KMS &rarr; ciphertext</li>
+      <li>How <code>closeBatch</code> marks the per-tick aggregates as publicly decryptable</li>
+      <li>The frontend&rsquo;s <code>usePublicDecrypt</code> reading prior-batch aggregates into the UI</li>
+      <li>Why the user-decrypt flow for individual fills is different &mdash; EIP-712, not public KMS</li>
+    </ul>
+  </div>
+
+  <p class="lede">Aggregates are publishable; individual orders are not. Zama&rsquo;s protocol makes this
+  distinction with two different permission models: <code>FHE.makePubliclyDecryptable(handle)</code>
+  lets any client request the plaintext from the KMS, while <code>FHE.allow(handle, address)</code> grants
+  an EIP-712-signed read to a specific address. Veil uses both: aggregates go public on close, fills stay
+  private to the trader.</p>
+
+<pre><code class="hljs lang-solidity"><span class="hljs-comment">// VeilBatchAuctionV2.closeBatch</span>
+<span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">closeBatch</span>(<span class="hljs-params"></span>) <span class="hljs-title"><span class="hljs-keyword">external</span></span> </span>{
+    Batch <span class="hljs-keyword">storage</span> b <span class="hljs-operator">=</span> _batches[currentBatchId];
+    <span class="hljs-keyword">if</span> (b.state <span class="hljs-operator">!</span><span class="hljs-operator">=</span> BatchState.Open <span class="hljs-operator">|</span><span class="hljs-operator">|</span> <span class="hljs-built_in">block</span>.<span class="hljs-built_in">number</span> <span class="hljs-operator">&lt;</span> b.closeBlock) <span class="hljs-keyword">revert</span> BatchNotOpen();
+    b.state <span class="hljs-operator">=</span> BatchState.Closed;
+    <span class="hljs-keyword">for</span> (<span class="hljs-keyword">uint8</span> t <span class="hljs-operator">=</span> <span class="hljs-number">0</span>; t <span class="hljs-operator">&lt;</span> NUM_TICKS; t<span class="hljs-operator">+</span><span class="hljs-operator">+</span>) {
+        FHE.makePubliclyDecryptable(b.buyVolume[t]);
+        FHE.makePubliclyDecryptable(b.sellVolume[t]);
+    }
+    <span class="hljs-keyword">emit</span> BatchClosed(currentBatchId);
+    <span class="hljs-keyword">emit</span> AggregatesPublished(currentBatchId);
+    _openNewBatch();
+}</code></pre>
+
+  <p>The <code>AggregatesPublished</code> event is the keeper&rsquo;s signal that decryption can begin.
+  Closing the batch also opens the next one in the same transaction &mdash; a clean rollover, no
+  ceremony.</p>
+
+  <h3>The frontend public-decrypt</h3>
+  <p>The dashboard&rsquo;s <code>LastClearedPanel</code> component reads the prior batch&rsquo;s aggregate
+  handles and pushes them through <code>usePublicDecrypt</code>, displaying the resulting plaintexts in a
+  small per-tick table next to the live (still-encrypted) orderbook:</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// components/veil/last-cleared.tsx</span>
+<span class="hljs-keyword">const</span> { <span class="hljs-attr">data</span>: handles } = <span class="hljs-title function_">useReadContracts</span>({ <span class="hljs-attr">contracts</span>: handleCalls });
+<span class="hljs-keyword">const</span> decrypt = <span class="hljs-title function_">usePublicDecrypt</span>();
+
+<span class="hljs-title function_">useEffect</span>(<span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">if</span> (handleList.<span class="hljs-property">length</span> === <span class="hljs-number">0</span>) <span class="hljs-keyword">return</span>;
+  decrypt.<span class="hljs-title function_">mutate</span>(handleList, {
+    <span class="hljs-attr">onSuccess</span>: <span class="hljs-function">(<span class="hljs-params">result</span>) =&gt;</span> {
+      <span class="hljs-keyword">const</span> next = <span class="hljs-title class_">Array</span>.<span class="hljs-title function_">from</span>({ <span class="hljs-attr">length</span>: <span class="hljs-variable constant_">NUM_TICKS</span> }, <span class="hljs-function">() =&gt;</span> ({ <span class="hljs-attr">buy</span>: <span class="hljs-number">0</span>, <span class="hljs-attr">sell</span>: <span class="hljs-number">0</span> }));
+      <span class="hljs-keyword">for</span> (<span class="hljs-keyword">let</span> t = <span class="hljs-number">0</span>; t &lt; <span class="hljs-variable constant_">NUM_TICKS</span>; t++) {
+        <span class="hljs-keyword">const</span> buyHandle  = handles[t * <span class="hljs-number">2</span>]?.<span class="hljs-property">result</span> <span class="hljs-keyword">as</span> <span class="hljs-string">`0x<span class="hljs-subst">${<span class="hljs-built_in">string</span>}</span>`</span>;
+        <span class="hljs-keyword">const</span> sellHandle = handles[t * <span class="hljs-number">2</span> + <span class="hljs-number">1</span>]?.<span class="hljs-property">result</span> <span class="hljs-keyword">as</span> <span class="hljs-string">`0x<span class="hljs-subst">${<span class="hljs-built_in">string</span>}</span>`</span>;
+        next[t] = {
+          <span class="hljs-attr">buy</span>:  <span class="hljs-title class_">Number</span>(result.<span class="hljs-property">clearValues</span>[buyHandle]  ?? <span class="hljs-number">0n</span>),
+          <span class="hljs-attr">sell</span>: <span class="hljs-title class_">Number</span>(result.<span class="hljs-property">clearValues</span>[sellHandle] ?? <span class="hljs-number">0n</span>),
+        };
+      }
+      <span class="hljs-title function_">setAggregates</span>(next);
+    },
+  });
+}, [handleList]);</code></pre>
+
+  <p>Visually, this turns the orderbook from a perpetually-empty zero column into something that has a
+  visible past: &ldquo;here&rsquo;s last batch&rsquo;s depth at each tick, and where it cleared.&rdquo;
+  Without this, a first-time visitor sees zeros at every tick during the live batch (because the live
+  aggregates are still encrypted) and assumes the app is broken.</p>
+
+  <h3>User-decrypt for fills</h3>
+  <p>Individual order fills go through a different path: when <code>submitClearing</code> writes
+  <code>filledSize</code>, it follows it with <code>FHE.allowThis(o.filledSize)</code> and
+  <code>FHE.allow(o.filledSize, o.trader)</code>. The trader can then call <code>useUserDecrypt</code>
+  in the frontend, sign an EIP-712 message containing the handle and the contract address, and the relayer
+  returns the plaintext. No one else &mdash; not the contract owner, not the keeper, not the KMS
+  operators &mdash; can read it.</p>
+</section>
+
+<!-- ===================== CHAPTER 10 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">10</div>
+    <div class="part-label">Part IV &mdash; The Frontend</div>
+    <h2>The Design System</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The Aurora theme &mdash; near-black, mono-font, one accent &mdash; and why it&rsquo;s the right register for confidential</li>
+      <li>The <code>Cipher</code> and <code>Redacted</code> primitives that visually encode &ldquo;encrypted&rdquo;</li>
+      <li>The panel system, the tabular-num discipline, and the encrypted-state aesthetic</li>
+      <li>Why the app is webpack-served, not Turbopack &mdash; one stack&rsquo;s import quirk</li>
+    </ul>
+  </div>
+
+  <p class="lede">A trading interface that doesn&rsquo;t feel like an instrument fails before it&rsquo;s
+  read. The dashboard&rsquo;s look is deliberate: a near-black background with hairline borders and one
+  accent green, mono fonts for every quantity, a perpetually-scrambling <code>Cipher</code> component that
+  makes the &ldquo;state is encrypted&rdquo; promise visible. The aesthetic is sometimes called
+  &ldquo;Aurora&rdquo; in the codebase because of the panel glow effect &mdash; a single radial gradient
+  hinting at the encrypted depth underneath.</p>
+
+  <h3>The palette</h3>
+  <p>CSS custom properties in <code>globals.css</code>. Achromatic except for one accent and one warn:</p>
+  <table>
+    <thead><tr><th>Token</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>--bg</code> / <code>--bg2</code> / <code>--bg3</code></td><td>page / panel / inset background</td></tr>
+      <tr><td><code>--text</code> / <code>--dim</code> / <code>--faint</code></td><td>primary / secondary / tertiary text</td></tr>
+      <tr><td><code>--line</code> / <code>--line2</code></td><td>hairline borders / focus borders</td></tr>
+      <tr><td><code>--accent</code> / <code>--glow</code></td><td>the one accent, used for confirmations and emphasis</td></tr>
+      <tr><td><code>--buy</code> / <code>--sell</code></td><td>buy / sell sides &mdash; the only colours on the orderbook</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Cipher and Redacted</h3>
+  <p>Two primitives in <code>components/veil/primitives.tsx</code> carry the encrypted-state aesthetic.
+  <code>Cipher</code> renders a perpetually-scrambling hex string that visually represents an encrypted
+  value the user hasn&rsquo;t (yet) revealed. <code>Redacted</code> shows children when revealed, otherwise
+  scrambles them with the same hex jitter. Both are SSR-safe via a stable placeholder and a
+  <code>useEffect</code> that starts scrambling only on the client.</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// primitives.tsx — the scrambling Cipher</span>
+<span class="hljs-keyword">export</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">Cipher</span>(<span class="hljs-params">{ len = <span class="hljs-number">8</span>, active = <span class="hljs-literal">true</span> }: { len?: <span class="hljs-built_in">number</span>; active?: <span class="hljs-built_in">boolean</span> }</span>) {
+  <span class="hljs-keyword">const</span> placeholder = <span class="hljs-string">&quot;0&quot;</span>.<span class="hljs-title function_">repeat</span>(len);
+  <span class="hljs-keyword">const</span> [txt, setTxt] = <span class="hljs-title function_">useState</span>(placeholder);
+  <span class="hljs-title function_">useEffect</span>(<span class="hljs-function">() =&gt;</span> {
+    <span class="hljs-keyword">if</span> (!active) { <span class="hljs-title function_">setTxt</span>(placeholder); <span class="hljs-keyword">return</span>; }
+    <span class="hljs-title function_">setTxt</span>(<span class="hljs-title function_">randStr</span>(<span class="hljs-variable constant_">HEX</span>, len));
+    <span class="hljs-keyword">const</span> id = <span class="hljs-built_in">setInterval</span>(<span class="hljs-function">() =&gt;</span> <span class="hljs-title function_">setTxt</span>(<span class="hljs-title function_">randStr</span>(<span class="hljs-variable constant_">HEX</span>, len)), <span class="hljs-number">70</span> + <span class="hljs-title class_">Math</span>.<span class="hljs-title function_">random</span>() * <span class="hljs-number">60</span>);
+    <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">clearInterval</span>(id);
+  }, [active, len]);
+  <span class="hljs-keyword">return</span> <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">span</span> <span class="hljs-attr">className</span>=<span class="hljs-string">&quot;veil-cipher&quot;</span> <span class="hljs-attr">suppressHydrationWarning</span>&gt;</span>{txt}<span class="hljs-tag">&lt;/<span class="hljs-name">span</span>&gt;</span></span>;
+}</code></pre>
+
+  <div class="callout">
+    <div class="k">War story</div>
+    <div class="ti">Webpack mode, not Turbopack</div>
+    <p><code>@zama-fhe/sdk</code>&rsquo;s bundle uses the right-associative <code>**</code> operator that
+    Turbopack&rsquo;s parser rejects. The fix isn&rsquo;t in the SDK &mdash; the operator is valid JS &mdash;
+    it&rsquo;s in <code>package.json</code>: <code>"dev": "next dev --webpack"</code> and
+    <code>"build": "next build"</code> (Next 16 only Turbopacks <code>dev</code> by default, so the build
+    is already correct). Both scripts pin webpack and the SDK loads cleanly. Reverting to Turbopack saves
+    nothing measurable in dev startup and breaks the FHE SDK &mdash; a forced choice that takes 30 seconds
+    once you know and an hour if you don&rsquo;t.</p>
+  </div>
+
+  <p>Behind everything sits a single-line gradient glow on every panel (<code>veil-panel-glow</code>) and
+  the same hairline border, the same 12px corner radius, the same subtle inset highlight on hover. The
+  effect is instrument-panel without being claustrophobic. The orderbook&rsquo;s buy/sell columns are the
+  only place the chromatic palette appears, which keeps red and green meaningful: every other state on
+  screen is brightness.</p>
+</section>
+
+<!-- ===================== CHAPTER 11 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">11</div>
+    <div class="part-label">Part IV &mdash; The Frontend</div>
+    <h2>The Pages</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>Five routes, each doing one job in the demo story</li>
+      <li>Why <code>/app</code> is the canonical trade view and <code>/app/paper</code> the no-tokens sandbox</li>
+      <li>The vault and regulator routes as standalone product entry points</li>
+      <li>The landing page&rsquo;s job: pitch first, link second</li>
+    </ul>
+  </div>
+
+  <p class="lede">Five routes, each a distinct job: convince, trade, sandbox, lend, audit. The route
+  collapse from V1/V2 to a single canonical <code>/app</code> happened mid-build &mdash; an earlier draft
+  had <code>/app</code> as the paper sandbox and <code>/app/v2</code> as the real thing, which confused
+  every first-time visitor including the project owner. The current layout is single-trade-route, with the
+  paper sandbox accessible by direct URL for visitors who want to click around without setting operators.</p>
+
+  <table>
+    <thead><tr><th>Route</th><th>Purpose</th></tr></thead>
+    <tbody>
+      <tr><td><code>/</code> landing</td><td>The thesis in one screen: a live encrypted batch panel, the four
+      primitives, why FHE is required, CTAs to <code>/app</code>, <code>/app/vault</code>, and
+      <code>/app/regulator</code>.</td></tr>
+      <tr><td><code>/app</code> trade</td><td>The canonical CLOB. ApproveRow chips for vWETH and vUSDC,
+      OperatorBar with reveal-balances, OrderBook live panel, OrderTicket with the &ldquo;Use vault
+      collateral&rdquo; toggle, LastClearedPanel below the ticket, MyOrders list with per-row settle.</td></tr>
+      <tr><td><code>/app/paper</code> sandbox</td><td>The no-tokens version of the CLOB. PlaceOrder only,
+      no escrow, no settle &mdash; for first-time visitors who don&rsquo;t want to approve operators yet.</td></tr>
+      <tr><td><code>/app/vault</code> lend</td><td>Confidential lending: operator approvals, PositionPanel
+      with reveal, four ActionForm cards (deposit / withdraw / borrow / repay), inline glossary tooltips on
+      LTV / utilization / health.</td></tr>
+      <tr><td><code>/app/regulator</code> audit</td><td>Grant / revoke time-bounded delegated-decrypt access
+      to a regulator address. Days-to-expiry input, current-grant display, single-tx writes.</td></tr>
+    </tbody>
+  </table>
+
+  <p>The landing page leads with the encrypted-batch visual and the four-primitive layout &mdash;
+  the rubric rewards a clear thesis up front, and the visual demonstrates the moat before the prose explains
+  it. Every CTA points at <code>/app</code> first, with secondary chips to vault and audit. The paper
+  sandbox is intentionally not advertised on the landing &mdash; it exists for testing, not for the first
+  visitor.</p>
+</section>
+
+<!-- ===================== CHAPTER 12 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">12</div>
+    <div class="part-label">Part IV &mdash; The Frontend</div>
+    <h2>The Components</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>How the trade page composes ~10 panels into one coherent screen</li>
+      <li>The OrderTicket and its VaultMarginToggle &mdash; the composition story in the UI</li>
+      <li>The LastClearedPanel: the public-decrypt flow surfaced as a depth table</li>
+      <li>The vault PositionPanel with inline-tooltip jargon</li>
+      <li>The StartHere onboarding banner with localStorage-persisted progress</li>
+    </ul>
+  </div>
+
+  <p class="lede"><code>TradeAppV2</code> in <code>components/veil/trade-app-v2.tsx</code> is the composition
+  &mdash; almost 1000 lines, but every panel earns its line count. In order down the page: the StartHere
+  onboarding banner (dismissable, four steps), the OperatorBar (two approve chips, two balance cells, a
+  reveal button), the BatchPanel (orderbook + tick prices), and the right column with OrderTicket,
+  LastClearedPanel, and MyOrders.</p>
+
+  <h3>OrderTicket and the VaultMarginToggle</h3>
+  <p>The OrderTicket is the central interaction: side toggle, tick selector, size input, submit. When the
+  user picks &ldquo;sell&rdquo; the VaultMarginToggle appears underneath &mdash; a checkbox plus an inline
+  paragraph explaining what &ldquo;Use vault collateral&rdquo; means, plus a contextual approve-vault button
+  if the user hasn&rsquo;t set V2 as their vault operator yet. When toggled on, the form&rsquo;s submit
+  routes to <code>placeOrderFromVault</code> instead of <code>placeOrder</code>.</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// trade-app-v2.tsx (excerpted)</span>
+<span class="hljs-keyword">const</span> txHash = composeSell
+  ? <span class="hljs-keyword">await</span> <span class="hljs-title function_">writeContractAsync</span>({
+      ...veilV2, <span class="hljs-attr">functionName</span>: <span class="hljs-string">&quot;placeOrderFromVault&quot;</span>,
+      <span class="hljs-attr">args</span>: [side, tick, size, proof, <span class="hljs-variable constant_">VEIL_VAULT_ADDRESS</span> <span class="hljs-keyword">as</span> <span class="hljs-title class_">Address</span>],
+      <span class="hljs-attr">gas</span>:  <span class="hljs-number">20_000_000n</span>,
+    })
+  : <span class="hljs-keyword">await</span> <span class="hljs-title function_">writeContractAsync</span>({
+      ...veilV2, <span class="hljs-attr">functionName</span>: <span class="hljs-string">&quot;placeOrder&quot;</span>,
+      <span class="hljs-attr">args</span>: [side, tick, size, proof],
+      <span class="hljs-attr">gas</span>:  <span class="hljs-number">18_000_000n</span>,
+    });</code></pre>
+
+  <h3>LastClearedPanel</h3>
+  <p>The component from Chapter 9 made visible. Six rows: tick, price, buy, sell, plus a totals row, plus
+  a clearing-tick highlight. Public-decrypted via <code>usePublicDecrypt</code> on the prior batch&rsquo;s
+  handles, polled every 10 seconds to catch the moment of close. The live (current) batch&rsquo;s columns
+  stay zero in the OrderBook above &mdash; that&rsquo;s honest, because they&rsquo;re encrypted until close.
+  The two panels together tell the truth: &ldquo;here&rsquo;s last batch&rsquo;s depth, here&rsquo;s this
+  batch&rsquo;s sealed activity.&rdquo;</p>
+
+  <h3>PositionPanel + tooltips</h3>
+  <p>The vault&rsquo;s headline component. Four cells: collateral (vWETH), debt (vUSDC), max-borrow,
+  utilization &mdash; with inline tooltips on the labels that explain what utilization means and how the LTV
+  ladder works. The reveal button drives <code>useUserDecrypt</code> on the two handles; until clicked, the
+  cells show em-dashes. Below the cells: a Price / LTV / Health row, with a tone-aware Pill (healthy /
+  at-risk) that switches automatically when utilization crosses 100%.</p>
+
+  <h3>StartHere</h3>
+  <p>Dismissable, localStorage-persisted, four steps that light up as the user completes them. The trade
+  page&rsquo;s four steps: approve vWETH+vUSDC, reveal balances, place a sealed order, settle. The vault
+  page&rsquo;s four: approve vWETH, approve vUSDC, deposit+borrow, reveal position. The progress is
+  observed from existing app state (approval booleans, balance state, order count, settled count) so the
+  banner is a pure projection &mdash; no extra event tracking, no parallel state.</p>
+</section>
+
+<!-- ===================== CHAPTER 13 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">13</div>
+    <div class="part-label">Part IV &mdash; The Frontend</div>
+    <h2>The Wallet-Connected Trade Flow</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The wagmi v3 single-chain config and the local <code>WagmiSigner</code> shim</li>
+      <li>The resilient ConnectChip: <code>connectAsync</code>, the 6-second watchdog, friendly errors under the button</li>
+      <li>The placeOrder flow: encrypt &rarr; submit &rarr; receipt &rarr; parse event &rarr; update local order list</li>
+      <li>The settle flow: user-decrypt the fill, submit settle, toast with Etherscan link and amount received</li>
+    </ul>
+  </div>
+
+  <p class="lede"><code>lib/wagmi.ts</code> configures a single-chain wagmi v3 client: Sepolia, the
+  injected connector (MetaMask / Rabby / Brave), and the public node RPC as transport. The frontend
+  swaps <code>@zama-fhe/react-sdk/wagmi</code>&rsquo;s <code>WagmiSigner</code> for a local
+  <code>lib/zama-signer.ts</code> &mdash; the upstream package depends on a <code>watchConnection</code>
+  export that wagmi v3 doesn&rsquo;t ship, and the local shim drops the subscribe step that needs it.</p>
+
+  <h3>The resilient ConnectChip</h3>
+  <p>The first version of the Connect button used wagmi&rsquo;s <code>useConnect().connect</code> with no
+  error handling. The first time a user dismissed MetaMask&rsquo;s popup by closing the window (instead of
+  clicking Reject), the mutation hung in <code>isPending</code> forever &mdash; the button stayed at
+  &ldquo;Connecting&hellip;&rdquo; with no recovery. The rewrite uses <code>connectAsync</code> with
+  try/catch, a 6-second watchdog that calls <code>reset()</code> if the mutation hangs, and surfaces the
+  friendly error under the button so the user knows what to do:</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// components/veil/connect-chip.tsx (core)</span>
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">tryConnect</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-title function_">setHint</span>(<span class="hljs-literal">null</span>); <span class="hljs-title function_">setLocalBusy</span>(<span class="hljs-literal">true</span>);
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">connectAsync</span>({ <span class="hljs-attr">connector</span>: injected });
+  } <span class="hljs-keyword">catch</span> (err) {
+    <span class="hljs-keyword">const</span> friendly = <span class="hljs-title function_">formatError</span>(err);
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">&quot;connect rejected — raw:&quot;</span>, err);
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">error</span>(<span class="hljs-string">&quot;connect rejected — friendly:&quot;</span>, friendly);
+    <span class="hljs-title function_">setHint</span>(friendly);
+    <span class="hljs-title function_">reset</span>();
+  } <span class="hljs-keyword">finally</span> {
+    <span class="hljs-title function_">setLocalBusy</span>(<span class="hljs-literal">false</span>);
+  }
+}
+
+<span class="hljs-title function_">useEffect</span>(<span class="hljs-function">() =&gt;</span> {
+  <span class="hljs-keyword">if</span> (!isPending) <span class="hljs-keyword">return</span>;
+  <span class="hljs-keyword">const</span> id = <span class="hljs-built_in">setTimeout</span>(<span class="hljs-function">() =&gt;</span> {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">warn</span>(<span class="hljs-string">&quot;Connect mutation stuck &gt;6s — resetting wagmi state.&quot;</span>);
+    <span class="hljs-title function_">reset</span>(); <span class="hljs-title function_">setLocalBusy</span>(<span class="hljs-literal">false</span>);
+  }, <span class="hljs-number">6000</span>);
+  <span class="hljs-keyword">return</span> <span class="hljs-function">() =&gt;</span> <span class="hljs-built_in">clearTimeout</span>(id);
+}, [isPending, reset]);</code></pre>
+
+  <p>The <code>formatError</code> helper digs through <code>shortMessage &rarr; message &rarr; details
+  &rarr; cause &rarr; name</code> four levels deep, maps EIP-1193 error codes (4001 user rejected, -32002
+  request pending, 4901 wrong chain) to friendly sentences, and falls back to JSON.stringify with property
+  lists so non-Error objects never print as <code>[object Object]</code>.</p>
+
+  <h3>The placeOrder flow</h3>
+  <p>From click to confirmed:</p>
+  <ol class="tight" style="padding-left:18px">
+    <li><strong>Validate</strong> &mdash; check approvals, check Sepolia network, switch if not.</li>
+    <li><strong>Encrypt</strong> &mdash; <code>useEncrypt().mutateAsync({ values: [{value:isBuy, type:"ebool"},
+    {value:BigInt(tickIdx), type:"euint8"}, {value:BigInt(size), type:"euint64"}], contractAddress:
+    VEIL_V2_ADDRESS, userAddress: address })</code>.</li>
+    <li><strong>Submit</strong> &mdash; <code>writeContractAsync</code> with explicit
+    <code>gas: 18_000_000n</code> so MetaMask doesn&rsquo;t pre-estimate and reject.</li>
+    <li><strong>Confirm</strong> &mdash; <code>waitForTransactionReceipt</code>, parse the
+    <code>OrderPlaced</code> event for the order index.</li>
+    <li><strong>Toast</strong> &mdash; success toast with Etherscan link, prepend the order to the local
+    MyOrders list with status &ldquo;sealed&rdquo;.</li>
+  </ol>
+
+  <h3>The settle flow</h3>
+  <p>An order row polls <code>getBatchState</code> every 4 seconds. When the batch transitions to
+  <code>Cleared</code>, the row swaps its label to &ldquo;Settle&rdquo; and exposes a button. The button
+  user-decrypts the fill (via <code>useUserDecrypt</code> on the <code>getOrderFill</code> handle), then
+  calls <code>settle(batchId, orderIdx)</code> with <code>gas: 12_000_000n</code>. On receipt, a success
+  toast reports the amount received with a clickable Etherscan link.</p>
+
+  <div class="callout">
+    <div class="k">War story</div>
+    <div class="ti">The 15M-gas pin that wasn&rsquo;t enough</div>
+    <p>An early <code>placeOrder</code> pinned <code>gas: 15_000_000n</code>, which worked for the V1 paper
+    contract. V2 added ERC-7984 escrow on both tokens plus the operator check plus the
+    <code>FHE.allowTransient</code> pair, pushing the gas closer to 16M and tipping into
+    &ldquo;estimateGas&rdquo; territory when the user&rsquo;s wallet was on the wrong chain. Bumping the
+    pin to 18M for direct placement and 20M for composition fixed it everywhere &mdash; with margin to
+    spare even if a future tick count or HCU price changes.</p>
+  </div>
+</section>
+
+<!-- ===================== CHAPTER 14 ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">14</div>
+    <div class="part-label">Part IV &mdash; The Frontend</div>
+    <h2>UX Polish &mdash; Toasts, Onboarding, Mobile, Deploy</h2>
+  </div>
+  <div class="learn">
+    <div class="h">What you will learn in this chapter</div>
+    <ul>
+      <li>The toast system: tx-hash links to Sepolia Etherscan on every success</li>
+      <li><code>formatError</code> &mdash; raw viem chains in, friendly sentences out</li>
+      <li>The composition explainer paragraph, the inline glossary tooltips, the settle success toast</li>
+      <li>The mobile responsive sweep and what it touched</li>
+      <li>The Vercel deploy: <code>veil-zama.vercel.app</code>, env vars per environment, alias to a stable subdomain</li>
+    </ul>
+  </div>
+
+  <p class="lede">The first review of the live dashboard surfaced six gaps: no transaction-hash links in
+  toasts, raw viem error chains shown to the user, no first-time onboarding, no explanation of the
+  composition toggle, no success state on settle, no inline tooltips for jargon. All six got closed in a
+  focused sweep; the result is a build a reviewer can run end-to-end without reading the README.</p>
+
+  <h3>Toasts with Etherscan links</h3>
+  <p><code>components/veil/toast.tsx</code> exposes <code>useToast()</code> returning <code>{toast, flash}</code>
+  and a <code>ToastView</code> at the bottom of every page. <code>flash</code> takes a
+  <code>ToastInput</code> with <code>message</code>, <code>tone</code> (success / info / error), and optional
+  <code>txHash</code> &mdash; if a hash is set, the toast renders an inline link to Sepolia Etherscan:</p>
+
+<pre><code class="hljs lang-typescript"><span class="hljs-comment">// components/veil/toast.tsx</span>
+{link &amp;&amp; (
+  <span class="language-xml"><span class="hljs-tag">&lt;<span class="hljs-name">a</span> <span class="hljs-attr">href</span>=<span class="hljs-string">{link}</span> <span class="hljs-attr">target</span>=<span class="hljs-string">&quot;_blank&quot;</span> <span class="hljs-attr">rel</span>=<span class="hljs-string">&quot;noreferrer noopener&quot;</span>
+     <span class="hljs-attr">className</span>=<span class="hljs-string">&quot;font-[var(--font-mono)] text-[11px] text-[var(--accent)] hover:underline&quot;</span>&gt;</span>
+    {shortHash(toast.txHash)} ↑
+  <span class="hljs-tag">&lt;/<span class="hljs-name">a</span>&gt;</span></span>
+)}</code></pre>
+
+  <h3>formatError</h3>
+  <p><code>lib/format-error.ts</code> turns the gnarly viem nested-cause chain
+  (<em>ContractFunctionExecutionError: The contract function &ldquo;X&rdquo; reverted with the following
+  reason:&hellip;</em>) into one friendly sentence. It does three things in order: extract by EIP-1193
+  error code (4001 user rejected, -32002 already pending, 4901 wrong chain), match the raw message against
+  a friendly-replacement table (insufficient funds, replacement underpriced, custom-error names), or fall
+  back to the first revert-reason regex match. Non-Error objects are JSON.stringified with property lists
+  so they never print as <code>[object Object]</code>.</p>
+
+  <h3>Inline composition explainer</h3>
+  <p>The VaultMarginToggle now carries a paragraph under the checkbox:
+  &ldquo;Compose the lending vault into this trade. Your encrypted vWETH collateral is pulled directly from
+  the vault and escrowed in Veil &mdash; your wallet vWETH balance is untouched. Unfilled size returns
+  straight to vault collateral on settle. <em>This is the moat: encrypted state from one contract flowing
+  into another, no decrypt in between.</em>&rdquo; The italic is the &lsquo;moat&rsquo; line because a
+  reviewer might click without understanding why it&rsquo;s special.</p>
+
+  <h3>The mobile sweep</h3>
+  <p>Six fixes touched ten components: vault PositionPanel <code>grid-cols-4</code> &rarr;
+  <code>grid-cols-2 md:grid-cols-4</code>, three app headers got <code>flex-wrap</code> plus
+  <code>min-h-16 py-2</code> with sub-md content hidden (the &ldquo;Site&rdquo; label, the ticker chip,
+  the Sepolia badge), body padding tightened from <code>px-6</code> to <code>px-4 sm:px-6</code>, the
+  BatchPanel footer stats got <code>flex-wrap</code> so the tick-prices string can drop a line, the
+  Regulator current-grant grid stacks to <code>cols-1</code> below sm, and the landing Hero drops its
+  <code>min-h-[72vh]</code> on phones so content stays above the fold.</p>
+
+  <h3>Vercel deploy</h3>
+  <p>The dashboard lives at <strong><a href="https://veil-zama.vercel.app">veil-zama.vercel.app</a></strong>.
+  Six <code>NEXT_PUBLIC_*</code> env vars synced to Production and Development (Preview required a Git-
+  connected project, which the demo skipped). Aliased from the auto-generated
+  <code>veil-ikjgqwhh9-oliens-projects.vercel.app</code> deploy URL via
+  <code>vercel alias set &lt;deploy&gt; veil-zama.vercel.app</code>. Deployment Protection
+  was disabled in the dashboard so the URL is genuinely public &mdash; otherwise reviewers hit a 401
+  authentication wall.</p>
+
+  <div class="callout note">
+    <div class="k">What this changes for the submission</div>
+    <p>Before the deploy: reviewers had to clone the repo, install dependencies, set five env vars, run two
+    dev servers, and connect a wallet just to <em>see</em> the project. Five minutes minimum, fifteen if
+    Node 25 throws hardhat warnings. After the deploy: open the URL, see the landing in two seconds, click
+    Launch app and you&rsquo;re wallet-prompting in five. The difference between &ldquo;they read my
+    README&rdquo; and &ldquo;they ran my product&rdquo; is one Vercel URL.</p>
+  </div>
+</section>
+
+<!-- ===================== APPENDIX A ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">A</div>
+    <div class="part-label">Part V &mdash; Reference</div>
+    <h2>The File Map</h2>
+  </div>
+  <p class="lede">A monorepo in three workspaces: the contracts (the truth), the keeper tasks (the
+  off-chain driver), and the web app (the surface).</p>
+<pre><code class="hljs lang-bash">contracts/                       <span class="hljs-comment"># Hardhat + @fhevm/solidity workspace</span>
+  contracts/
+    VeilBatchAuction.sol           <span class="hljs-comment"># v1 paper CLOB (no escrow)</span>
+    VeilBatchAuctionV2.sol         <span class="hljs-comment"># v2 CLOB with ERC-7984 escrow + settle + composition</span>
+    VeilLendingVault.sol           <span class="hljs-comment"># encrypted health factor, single-tx liquidation, composition entry</span>
+    VeilRegulatorRegistry.sol      <span class="hljs-comment"># time-bounded delegated-decrypt grants</span>
+    MockConfidentialToken.sol      <span class="hljs-comment"># minimal ERC-7984 used for demo vWETH/vUSDC</span>
+    IConfidentialToken.sol         <span class="hljs-comment"># the ERC-7984 slice Veil binds against</span>
+  deploy/
+    deploy.ts / deploy-v2.ts / deploy-vault.ts
+  tasks/
+    Veil.ts                        <span class="hljs-comment"># task:veil:status/close/clear/my-fill + computeClearing</span>
+    VeilV2.ts                      <span class="hljs-comment"># task:veil-v2:status/faucet/close/clear/my-fill/settle</span>
+    Vault.ts                       <span class="hljs-comment"># task:vault:address/seed/status/liquidate/my-position</span>
+    Keeper.ts                      <span class="hljs-comment"># task:keeper:run/tick (closes + clears + sweeps liquidations)</span>
+  <span class="hljs-built_in">test</span>/
+    VeilBatchAuction.ts            <span class="hljs-comment"># v1 tests</span>
+    VeilBatchAuctionV2.ts          <span class="hljs-comment"># v2 tests (10 passing on the FHEVM mock)</span>
+  hardhat.config.ts                <span class="hljs-comment"># Sepolia + local FHEVM mock + viaIR</span>
+
+web/                             <span class="hljs-comment"># Next.js 16 frontend (webpack mode)</span>
+  app/
+    page.tsx                       <span class="hljs-comment"># / landing</span>
+    app/page.tsx                   <span class="hljs-comment"># /app real CLOB</span>
+    app/paper/page.tsx             <span class="hljs-comment"># /app/paper no-tokens sandbox</span>
+    app/vault/page.tsx             <span class="hljs-comment"># /app/vault confidential lending</span>
+    app/regulator/page.tsx         <span class="hljs-comment"># /app/regulator audit grants</span>
+    providers.tsx                  <span class="hljs-comment"># wagmi v3 + @zama-fhe/react-sdk providers</span>
+    globals.css                    <span class="hljs-comment"># Aurora theme tokens + keyframes</span>
+  components/veil/
+    trade-app-v2.tsx               <span class="hljs-comment"># /app composition (~1000 lines)</span>
+    vault-app.tsx / regulator-app.tsx
+    orderbook.tsx                  <span class="hljs-comment"># OrderBook + useBatchLifecycle</span>
+    last-cleared.tsx               <span class="hljs-comment"># LastClearedPanel (usePublicDecrypt)</span>
+    primitives.tsx                 <span class="hljs-comment"># Cipher, Redacted, Pill, Btn, Wordmark, EthereumMark, Icon</span>
+    nav.tsx / connect-chip.tsx     <span class="hljs-comment"># shared route nav + resilient wallet connect</span>
+    start-here.tsx / tip.tsx / glossary.ts
+    toast.tsx                      <span class="hljs-comment"># ToastView + useToast with tx-hash links</span>
+    sections.tsx                   <span class="hljs-comment"># landing sections</span>
+  lib/
+    abi-v2.ts / abi-vault.ts       <span class="hljs-comment"># hand-curated ABIs</span>
+    use-v2-lifecycle.ts / use-veil-lifecycle.ts
+    config.ts                      <span class="hljs-comment"># env-driven contract addresses</span>
+    etherscan.ts / format-error.ts <span class="hljs-comment"># tx-hash links + error friendly-text mapping</span>
+    wagmi.ts / zama-signer.ts      <span class="hljs-comment"># single-chain wagmi v3 + WagmiSigner shim</span>
+
+tokenops/                        <span class="hljs-comment"># Mist — confidential disperse (TokenOps Special Bounty, parallel)</span>
+docs/                            <span class="hljs-comment"># planning docs, ADRs, this engineering reference (gitignored)</span></code></pre>
+</section>
+
+<!-- ===================== APPENDIX B ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">B</div>
+    <div class="part-label">Part V &mdash; Reference</div>
+    <h2>Deployed Addresses &amp; Environment</h2>
+  </div>
+  <p class="lede">Live on Ethereum Sepolia (chainId 11155111). Deployer:
+  <code>0x4599C71A28FA7D3C66c432bb95D2D9C3A671D16C</code>. All five contracts source-verified on Sepolia
+  Etherscan. Hosted dashboard at <strong>https://veil-zama.vercel.app</strong>.</p>
+  <table>
+    <thead><tr><th>Contract</th><th>Address</th></tr></thead>
+    <tbody>
+      <tr><td>VeilBatchAuction (v1 paper)</td><td><code>0xde5aC3708831BDd2DfDbF00614A2717f76eacb7e</code></td></tr>
+      <tr><td>VeilBatchAuctionV2 (composition-aware)</td><td><code>0x6F4eB2E35E91a1efC54c1927b1bdCcc667bC140F</code></td></tr>
+      <tr><td>VeilLendingVault</td><td><code>0x4A807C8bBB027e819d8Ab17bD22dF5b3C5876d2A</code></td></tr>
+      <tr><td>VeilRegulatorRegistry</td><td><code>0xD9EEF8C06cB520e3A423FC1043fBbfb17D87d4A6</code></td></tr>
+      <tr><td>vWETH (MockConfidentialToken)</td><td><code>0xD7b35a8d7692B469d5C72D163e405C8c06177eCF</code></td></tr>
+      <tr><td>vUSDC (MockConfidentialToken)</td><td><code>0x5cb2dEe62375f3F9315BFE79B1551A5001593Cb8</code></td></tr>
+    </tbody>
+  </table>
+
+  <h4>The vault state</h4>
+  <table>
+    <thead><tr><th>Parameter</th><th>Value</th></tr></thead>
+    <tbody>
+      <tr><td><code>price</code></td><td>3,400 vUSDC per vWETH (plaintext, oracle-free for demo)</td></tr>
+      <tr><td><code>ltvBps</code></td><td>7,500 (75% loan-to-value)</td></tr>
+      <tr><td><code>liquidationBonusBps</code></td><td>500 (5%, unused in simplified liquidation)</td></tr>
+      <tr><td>Seeded liquidity</td><td>10,000,000 vUSDC available to borrowers</td></tr>
+    </tbody>
+  </table>
+
+  <h4>Frontend environment</h4>
+  <ul class="tight">
+    <li><code>NEXT_PUBLIC_VEIL_ADDRESS</code> &mdash; V1 paper contract (for <code>/app/paper</code>)</li>
+    <li><code>NEXT_PUBLIC_VEIL_V2_ADDRESS</code> &mdash; V2 (canonical CLOB)</li>
+    <li><code>NEXT_PUBLIC_VEIL_BASE_ADDRESS</code> &mdash; vWETH</li>
+    <li><code>NEXT_PUBLIC_VEIL_QUOTE_ADDRESS</code> &mdash; vUSDC</li>
+    <li><code>NEXT_PUBLIC_VEIL_VAULT_ADDRESS</code> &mdash; lending vault</li>
+    <li><code>NEXT_PUBLIC_VEIL_REGULATOR_ADDRESS</code> &mdash; regulator registry</li>
+    <li><code>NEXT_PUBLIC_SEPOLIA_RPC</code> / <code>NEXT_PUBLIC_ZAMA_RELAYER_URL</code> &mdash; optional
+    overrides; default to <code>SepoliaConfig</code> from the Zama SDK</li>
+  </ul>
+  <p class="small">Private signer keys live only in <code>~/.config/hardhat-nodejs/vars.json</code>; the
+  repo&rsquo;s <code>.env.local</code> contains nothing sensitive. Run the stack with
+  <code>cd web &amp;&amp; npm run dev</code> for local development (port 3000), or visit the hosted URL.
+  Contracts: <code>cd contracts &amp;&amp; npx hardhat compile</code> then the keeper:
+  <code>npx hardhat --network sepolia task:keeper:run --liquidate true</code>.</p>
+</section>
+
+<!-- ===================== APPENDIX C ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">C</div>
+    <div class="part-label">Part V &mdash; Reference</div>
+    <h2>The 3-Minute Demo Run-of-Show</h2>
+  </div>
+  <p class="lede">The whole story in three minutes. The climax is beats 6&ndash;7: the composition
+  round-trip where vault collateral becomes Veil escrow without a decrypt.</p>
+  <table>
+    <thead><tr><th>#</th><th>On screen</th><th>Beat</th></tr></thead>
+    <tbody>
+      <tr><td>0</td><td>Landing</td><td>&ldquo;A confidential CLOB. Orders are encrypted in your browser,
+      aggregated under FHE, cleared at one uniform price &mdash; with no one seeing the book.&rdquo;</td></tr>
+      <tr><td>1</td><td>/app, ApproveRow</td><td>One-time operator approval on vWETH and vUSDC &mdash; the
+      ERC-7984 setup.</td></tr>
+      <tr><td>2</td><td>OperatorBar, reveal</td><td>Click Reveal balances. The user-decrypt flow pulls
+      plaintext from the KMS &mdash; only you can see this.</td></tr>
+      <tr><td>3</td><td>OrderTicket, sell</td><td>Place a sell at tick 2. Side, tick, size all encrypted
+      in the browser &mdash; the LastClearedPanel below shows what last batch looked like.</td></tr>
+      <tr><td>4</td><td>Keeper tab</td><td>The keeper closes the batch, public-decrypts the aggregates,
+      computes clearing, submits. The orderbook&rsquo;s prior-batch column updates.</td></tr>
+      <tr><td>5</td><td>MyOrders, Settle</td><td>User-decrypt the fill; settle. Etherscan link in the
+      toast shows the encrypted transfer.</td></tr>
+      <tr><td>6</td><td>/app/vault, deposit + borrow</td><td>Switch tabs, deposit 10 vWETH, borrow 5,000
+      vUSDC. Reveal position &mdash; collateral 10, debt 5,000, utilization 19.6%, health OK.</td></tr>
+      <tr><td>7</td><td>/app, &ldquo;Use vault collateral&rdquo;</td><td>Toggle on. Place a sell from vault
+      collateral. <strong>The vault&rsquo;s encrypted vWETH becomes Veil&rsquo;s encrypted vWETH without
+      a decrypt.</strong> Settle returns unfilled to vault collateral the same way.</td></tr>
+      <tr><td>8</td><td>/app/regulator</td><td>Grant a 30-day audit access to a regulator address. The
+      compliance hatch, time-bounded and revocable.</td></tr>
+      <tr><td>9</td><td>Closing</td><td>&ldquo;CLOB, escrow, lending, audit &mdash; four primitives,
+      one composable encrypted state, every step a verifiable Sepolia event.&rdquo;</td></tr>
+    </tbody>
+  </table>
+  <p>Reviewers can take the wheel after the demo: <code>/app</code> trades, <code>/app/vault</code> lends,
+  <code>/app/regulator</code> grants audit. Every flow is user-signed end-to-end &mdash; no server keys,
+  no hosted custody.</p>
+</section>
+
+<!-- ===================== APPENDIX D ===================== -->
+<section class="chapter">
+  <div class="opener">
+    <div class="bignum">D</div>
+    <div class="part-label">Part V &mdash; Reference</div>
+    <h2>Glossary</h2>
+  </div>
+  <table>
+    <thead><tr><th>Term</th><th>Definition</th></tr></thead>
+    <tbody>
+      <tr><td>FHEVM</td><td>Zama&rsquo;s Fully Homomorphic Encryption Virtual Machine: an EVM
+      extension that lets Solidity compute on encrypted handles (<code>euint8</code>, <code>euint64</code>,
+      <code>ebool</code>) without decryption.</td></tr>
+      <tr><td>HCU</td><td>Homomorphic Compute Units &mdash; FHEVM&rsquo;s metering unit, separate from gas.
+      Each FHE op (add, mul, select) has an HCU cost; the per-tx budget is 20M HCU with depth &le; 5M.</td></tr>
+      <tr><td>ERC-7984</td><td>The Confidential Fungible Token standard: <code>setOperator</code>,
+      <code>confidentialTransfer</code>, <code>confidentialTransferFrom</code>,
+      <code>confidentialBalanceOf</code>. Veil&rsquo;s demo tokens implement it minimally.</td></tr>
+      <tr><td>Sealed-bid batch</td><td>A market microstructure that collects orders during a window with no
+      mid-window matching, then clears them all at a single uniform price. Wilson 1979.</td></tr>
+      <tr><td>Uniform-price clearing</td><td>The one tick where supply meets demand &mdash; every filled
+      order at that batch trades at the same price, regardless of where the trader bid.</td></tr>
+      <tr><td>Marginal bps</td><td>The fraction (0&ndash;10,000) of orders <em>at</em> the clearing tick
+      that fill, encoded in plaintext to sidestep FHEVM&rsquo;s no-encrypted-divisor rule.</td></tr>
+      <tr><td>Public decryption</td><td>The KMS-mediated flow that turns an <code>FHE.makePubliclyDecryptable</code>
+      handle into plaintext anyone can fetch. Veil uses it on per-tick aggregates after close.</td></tr>
+      <tr><td>User decryption</td><td>The EIP-712-gated flow that lets a specific address read a specific
+      handle. Veil uses it on per-order fills.</td></tr>
+      <tr><td>Operator (ERC-7984)</td><td>An address authorized to call
+      <code>confidentialTransferFrom</code> on a holder&rsquo;s behalf for a TTL.</td></tr>
+      <tr><td>Composition (Veil-specific)</td><td>The pattern where one contract&rsquo;s encrypted state
+      (vault collateral) becomes another contract&rsquo;s encrypted state (Veil order escrow) without ever
+      being decrypted.</td></tr>
+    </tbody>
+  </table>
+  <p class="kicker" style="margin-top:24px;">seal &rarr; aggregate &rarr; clear &rarr; settle &mdash;
+  every step a verifiable Sepolia event, every quantity an encrypted handle. That is Veil.</p>
+</section>
+
+<script src="https://cdn.jsdelivr.net/npm/highlight.js@11.9.0/lib/highlight.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/highlightjs-solidity@2.0.6/dist/solidity.min.js"></script>
+<script>
+(function(){
+  if (!window.hljs) return;
+  if (window.hljsDefineSolidity) {
+    hljs.registerLanguage('solidity', window.hljsDefineSolidity);
+  }
+  document.querySelectorAll('pre code').forEach(function(block){
+    var m = block.className.match(/lang-(\w+)/);
+    var map = { sol:'solidity', ts:'typescript', js:'javascript', tsx:'typescript', bash:'bash' };
+    var lang = m ? map[m[1]] : null;
+    try {
+      var out = lang
+        ? hljs.highlight(block.textContent, { language: lang })
+        : hljs.highlightAuto(block.textContent, ['solidity', 'typescript', 'javascript', 'bash']);
+      block.innerHTML = out.value;
+      block.classList.add('hljs');
+    } catch (e) { /* leave plain monospace */ }
+  });
+  document.documentElement.setAttribute('data-hljs-done', '1');
+})();
+</script>
+</body>
+</html>
