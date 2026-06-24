@@ -417,7 +417,7 @@ function OrderTicket({
             type="button"
             onClick={() => setSide(s)}
             className={[
-              "h-10 rounded-[7px] font-[var(--font-display)] font-semibold text-sm capitalize transition-all duration-150",
+              "h-12 lg:h-10 rounded-[7px] font-[var(--font-display)] font-semibold text-sm capitalize transition-all duration-150",
               side === s
                 ? s === "buy"
                   ? "bg-[var(--buy)] text-[var(--accent-ink)]"
@@ -437,7 +437,7 @@ function OrderTicket({
         <select
           value={tickIdx}
           onChange={(e) => setTickIdx(Number(e.target.value))}
-          className="h-[46px] bg-[var(--bg3)] border border-[var(--line2)] rounded-[10px] text-[var(--text)] font-[var(--font-mono)] text-[15px] px-3.5 outline-none focus:border-[var(--accent)]"
+          className="h-12 lg:h-[46px] bg-[var(--bg3)] border border-[var(--line2)] rounded-[10px] text-[var(--text)] font-[var(--font-mono)] text-base lg:text-[15px] px-3.5 outline-none focus:border-[var(--accent)]"
         >
           {life.book.ticks.map((t, i) => (
             <option key={i} value={i}>
@@ -455,7 +455,7 @@ function OrderTicket({
           step="1"
           value={size}
           onChange={(e) => setSize(e.target.value)}
-          className="h-[46px] bg-[var(--bg3)] border border-[var(--line2)] rounded-[10px] text-[var(--text)] font-[var(--font-mono)] text-[15px] px-3.5 outline-none focus:border-[var(--accent)]"
+          className="h-12 lg:h-[46px] bg-[var(--bg3)] border border-[var(--line2)] rounded-[10px] text-[var(--text)] font-[var(--font-mono)] text-base lg:text-[15px] px-3.5 outline-none focus:border-[var(--accent)]"
         />
       </label>
 
@@ -893,7 +893,7 @@ export function TradeAppV2() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+      <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
         {address && (
           <StartHere
             storageKey="veil.starthere.trade"
@@ -933,7 +933,7 @@ export function TradeAppV2() {
           />
         )}
 
-        <div className="grid lg:grid-cols-[1fr_380px] gap-[22px] items-start">
+        <div className="flex flex-col-reverse gap-[22px] lg:grid lg:grid-cols-[1fr_380px] lg:items-start">
           <section>
             <div className="veil-panel p-[22px]">
               <div className="veil-panel-glow" />

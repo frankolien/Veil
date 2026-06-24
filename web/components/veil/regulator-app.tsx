@@ -151,7 +151,7 @@ export function RegulatorApp() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-[900px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+      <div className="flex-1 max-w-[900px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
         <div className="veil-panel p-[22px]">
           <div className="veil-panel-glow" />
           <div className="relative flex items-center justify-between mb-[18px]">
@@ -190,7 +190,7 @@ export function RegulatorApp() {
               value={regulatorInput}
               onChange={(e) => setRegulatorInput(e.target.value)}
               placeholder="0x…"
-              className="h-10 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-[13px] focus:outline-none focus:border-[var(--accent)]"
+              className="h-12 md:h-10 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-base md:text-[13px] focus:outline-none focus:border-[var(--accent)]"
             />
           </label>
           <label className="flex flex-col gap-1.5">
@@ -201,7 +201,7 @@ export function RegulatorApp() {
               max="365"
               value={days}
               onChange={(e) => setDays(e.target.value)}
-              className="h-10 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-[13px] focus:outline-none focus:border-[var(--accent)]"
+              className="h-12 md:h-10 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-base md:text-[13px] focus:outline-none focus:border-[var(--accent)]"
             />
           </label>
           <div className="flex gap-3 flex-wrap">

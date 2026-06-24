@@ -290,7 +290,7 @@ function ActionForm({
           value={amount}
           onChange={(e) => setAmount(e.target.value)}
           disabled={busy}
-          className="h-9 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-[13px] focus:outline-none focus:border-[var(--accent)]"
+          className="h-12 md:h-9 px-3 rounded-md bg-[var(--bg3)] border border-[var(--line)] text-[var(--text)] font-[var(--font-mono)] text-base md:text-[13px] focus:outline-none focus:border-[var(--accent)]"
         />
       </label>
       <Btn type="submit" variant="primary" size="sm" disabled={busy}>
@@ -406,7 +406,7 @@ export function VaultApp() {
         </div>
       </header>
 
-      <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-16 flex flex-col gap-[22px]">
+      <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
         {address && (
           <StartHere
             storageKey="veil.starthere.vault"

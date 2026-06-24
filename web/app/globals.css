@@ -52,6 +52,12 @@ body {
   text-rendering: optimizeLegibility;
 }
 
+/* iOS Safari auto-zooms when focusing inputs with font-size < 16px.
+   Hold the line at 16px on touch viewports — desktop keeps original sizes. */
+@media (max-width: 767px) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
 ::selection { background: var(--accent); color: var(--accent-ink); }
 
 /* ---- Backgrounds: grid + aurora mesh + grain ---- */
