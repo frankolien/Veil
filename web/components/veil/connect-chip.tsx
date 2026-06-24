@@ -2,12 +2,15 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useAccount, useChainId, useConnect, useDisconnect, useSwitchChain } from "wagmi";
+import type { Connector } from "wagmi";
 import { sepolia } from "wagmi/chains";
 import { Btn, Icon } from "./primitives";
 import { shortAddr } from "@/lib/config";
 import { formatError } from "@/lib/format-error";
 
-const CONNECT_WATCHDOG_MS = 6000;
+// Generous so the user has time to unlock MetaMask and click Approve.
+// Only fires if wagmi's mutation hangs without the wallet ever responding.
+const CONNECT_WATCHDOG_MS = 60_000;
 
 export function ConnectChip() {
   const { address, isConnected, chain } = useAccount();
@@ -19,6 +22,13 @@ export function ConnectChip() {
   const [localBusy, setLocalBusy] = useState(false);
   const watchdog = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const [hasInjected, setHasInjected] = useState(false);
+  useEffect(() => {
+    setHasInjected(
+      typeof window !== "undefined" && Boolean((window as unknown as { ethereum?: unknown }).ethereum),
+    );
+  }, []);
+
   useEffect(() => {
     if (!isPending) {
       if (watchdog.current) {
@@ -29,7 +39,7 @@ export function ConnectChip() {
     }
     if (watchdog.current) clearTimeout(watchdog.current);
     watchdog.current = setTimeout(() => {
-      console.warn("Connect mutation stuck >6s — resetting wagmi state. Click Connect again.");
+      console.warn("Connect mutation stuck >60s — resetting wagmi state. Click Connect again.");
       reset();
       setLocalBusy(false);
     }, CONNECT_WATCHDOG_MS);
@@ -44,13 +54,12 @@ export function ConnectChip() {
 
   const [hint, setHint] = useState<string | null>(null);
 
-  async function tryConnect() {
-    const injected = connectors.find((c) => c.id === "injected") ?? connectors[0];
-    if (!injected || localBusy) return;
+  async function tryConnect(connector: Connector | undefined) {
+    if (!connector || localBusy) return;
     setHint(null);
     setLocalBusy(true);
     try {
-      await connectAsync({ connector: injected });
+      await connectAsync({ connector });
     } catch (err) {
       console.error("connect rejected — raw error:", err);
       const friendly = formatError(err);
@@ -92,14 +101,43 @@ export function ConnectChip() {
     );
   }
 
-  const injected = connectors.find((c) => c.id === "injected") ?? connectors[0];
+  const injectedConnector = connectors.find((c) => c.id === "injected");
+  const wcConnector = connectors.find((c) => c.id === "walletConnect");
   const busy = (isPending || localBusy) && !error;
+  const showBrowser = hasInjected && injectedConnector;
+  const showWc = Boolean(wcConnector);
+
   return (
     <span className="inline-flex flex-col items-end gap-1">
-      <Btn variant="primary" size="sm" disabled={busy || !injected} onClick={tryConnect}>
-        <Icon name="wallet" size={14} />
-        {busy ? "Connecting…" : "Connect"}
-      </Btn>
+      <span className="inline-flex items-center gap-1.5">
+        {showBrowser && (
+          <Btn
+            variant="primary"
+            size="sm"
+            disabled={busy}
+            onClick={() => tryConnect(injectedConnector)}
+          >
+            <Icon name="wallet" size={14} />
+            {busy ? "Connecting…" : showWc ? "Browser" : "Connect"}
+          </Btn>
+        )}
+        {showWc && (
+          <Btn
+            variant={showBrowser ? "outline" : "primary"}
+            size="sm"
+            disabled={busy}
+            onClick={() => tryConnect(wcConnector)}
+          >
+            {busy ? "…" : "Mobile · QR"}
+          </Btn>
+        )}
+        {!showBrowser && !showWc && (
+          <Btn variant="primary" size="sm" disabled>
+            <Icon name="wallet" size={14} />
+            No wallet detected
+          </Btn>
+        )}
+      </span>
       {hint && (
         <span className="font-[var(--font-mono)] text-[10.5px] text-[var(--sell)] max-w-[280px] text-right leading-tight">
           {hint}

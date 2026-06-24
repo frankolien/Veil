@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
+    "@walletconnect/modal": "^2.7.0",
     "@zama-fhe/react-sdk": "^3.0.1",
     "@zama-fhe/sdk": "^3.0.1",
     "next": "16.2.6",
