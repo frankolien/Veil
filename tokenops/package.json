@@ -11,6 +11,7 @@
   "dependencies": {
     "@tanstack/react-query": "^5.100.14",
     "@tokenops/sdk": "^1.0.0",
+    "@walletconnect/ethereum-provider": "^2.23.10",
     "@walletconnect/modal": "^2.7.0",
     "@zama-fhe/react-sdk": "^3.0.1",
     "@zama-fhe/sdk": "^3.0.1",
