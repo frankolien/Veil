@@ -85,17 +85,6 @@ The trader and the solver are the only honest participants the protocol asks for
 | `vUSDC` demo confidential token | `0x5cb2dEe62375f3F9315BFE79B1551A5001593Cb8` | [sepolia.etherscan.io](https://sepolia.etherscan.io/address/0x5cb2dEe62375f3F9315BFE79B1551A5001593Cb8) |
 | Confidential Wrappers Registry | inherited from Zama | [docs](https://docs.zama.org/protocol/protocol-apps/registry-contract) |
 
-### Frontend routes (local dev: http://localhost:3000)
-
-| Route | Purpose |
-|---|---|
-| `/` | Landing page · live encrypted-batch panel |
-| `/app` | CLOB · approve vWETH + vUSDC · sealed order with real escrow + settle · "Use vault collateral" toggle for composition |
-| `/app/paper` | Paper-trade sandbox · placeOrder only, no tokens move (the v1 CLOB) |
-| `/app/vault` | Confidential lending vault · encrypted deposit / borrow / repay / withdraw · user-decrypt position |
-| `/app/regulator` | Audit registry · grant / revoke time-bounded regulator key |
-
----
 
 ## The Four Functions
 
@@ -139,11 +128,6 @@ A sealed-bid, uniform-price batch auction in five steps:
 | Liquidation privacy (Week 4) | Encrypted `euint64` health factor; `FHE.select` drives liquidation flag | Only the keeper can decrypt the flag, and only when it flips |
 | Compliance hatch (Week 5) | Delegated decryption to a regulator key, ACL-bound to a contract scope | Auditable without exposing the book to the public |
 
-### Security Notice
-
-The Solidity contracts **have not been audited.** They have a Hardhat test suite passing 4/4 on the FHEVM mock and have been designed against the operations restrictions in `docs.zama.org/protocol/solidity-guides/smart-contract/operations` (no division-by-encrypted, no encrypted loop bounds, etc.). Production deployment of the v1 contract should await a formal audit; the v0 in this repo is a grant-submission prototype.
-
----
 
 ## Monorepo Structure
 
@@ -206,18 +190,6 @@ zama_grant/
 
 ---
 
-## Phase Status
-
-- ✅ **Week 1** — Monorepo bootstrapped · `VeilBatchAuction.sol` (v0) compiles & tests pass 4/4 on the FHEVM mock · Aurora-theme landing + trade-app frontend with real `useEncrypt` wiring · Mist (TokenOps disperse) scaffolded with `@tokenops/sdk/fhe-disperse/react`
-- ✅ **Week 2** — v1 contract: pro-rata at the marginal tick via `size · bps / 10_000` (basis-point encoding sidesteps the FHEVM no-encrypted-divisor restriction) · 10/10 tests pass on the FHEVM mock · deployed to Sepolia · Hardhat task pack for the close/clear/decrypt-fill lifecycle
-- ✅ **Week 3** — `VeilBatchAuctionV2` adds ERC-7984 dual-token escrow on `placeOrder` and per-user `settle(batchId, orderIdx)` · `vWETH` + `vUSDC` demo confidential tokens deployed · `/app` wired with operator-approval UX + reveal-balances + settle button
-- ✅ **Week 4** — `VeilLendingVault` with encrypted `euint64` collateral and debt · LTV gate computed homomorphically (`collateral × price × ltv / BPS_DENOM`) · over-borrow / over-withdraw silently clamp to 0 via `FHE.select` · `liquidate()` is single-tx (no decrypt round-trip) · `/app/vault` deposit / withdraw / borrow / repay UI
-- ✅ **Week 5** — `VeilRegulatorRegistry` for time-bounded delegated-decrypt grants · `/app/regulator` UI · consolidated keeper bot (`task:keeper:run`) closes/clears V2 batches and sweeps liquidations on a single loop
-- 🟡 **Week 6** — In progress: 3-minute demo video · final docs pass · Builder Track + TokenOps Special Bounty submissions
-
-Submission deadline: **2026-07-07 (23:59 AOE)**.
-
----
 
 ## Build & Test
 
@@ -271,14 +243,6 @@ npx hardhat vars set PRIVATE_KEY
 npx hardhat vars set INFURA_API_KEY
 npx hardhat --network sepolia deploy
 ```
-
----
-
-## Known Notes
-
-- **Both Next apps run `next dev/build --webpack`.** Turbopack 16 currently fails to parse `@zama-fhe/sdk`'s right-associative `**` operator; webpack mode handles it. Scripts already pass the flag.
-- **`watchConnection` shim.** Both `web/` and `tokenops/` swap `@zama-fhe/react-sdk/wagmi`'s `WagmiSigner` for a local `lib/zama-signer.ts`. The upstream signer imports a `watchConnection` symbol that current wagmi versions no longer export; the local copy omits the optional `subscribe` lifecycle hook and keeps the rest of the surface intact.
-- **`@tokenops/sdk` wagmi pin.** `@tokenops/sdk` peer-pins wagmi `^2.0.0` but the Zama React SDK needs the wagmi v3 API. Resolved via an `overrides.wagmi` in `tokenops/package.json`.
 
 ---
 
