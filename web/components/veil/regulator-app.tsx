@@ -17,6 +17,7 @@ import { Btn, EthereumMark, Icon, Pill, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
 import { ToastView, useToast } from "./toast";
 import { ConnectChip } from "./connect-chip";
+import { WrongChainGate } from "./wrong-chain-gate";
 import { formatError } from "@/lib/format-error";
 import { veilRegulatorRegistryAbi } from "@/lib/abi-vault";
 import { VEIL_REGULATOR_ADDRESS, hasRegulatorDeployment, shortAddr } from "@/lib/config";
@@ -152,6 +153,7 @@ export function RegulatorApp() {
       </header>
 
       <div className="flex-1 max-w-[900px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
+        <WrongChainGate />
         <div className="veil-panel p-[22px]">
           <div className="veil-panel-glow" />
           <div className="relative flex items-center justify-between mb-[18px]">

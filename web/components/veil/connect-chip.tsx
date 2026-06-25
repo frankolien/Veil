@@ -46,6 +46,17 @@ export function ConnectChip() {
     if (error) console.error("wagmi connect error:", formatError(error));
   }, [error]);
 
+  // Auto-prompt chain switch once when we land on the wrong chain (e.g. user's
+  // wallet defaults to mainnet). Guard so we don't spam if they reject.
+  const [autoSwitched, setAutoSwitched] = useState(false);
+  useEffect(() => {
+    if (wrongChain && !switching && !autoSwitched) {
+      setAutoSwitched(true);
+      switchChainAsync({ chainId: sepolia.id }).catch(() => {});
+    }
+    if (!wrongChain) setAutoSwitched(false);
+  }, [wrongChain, switching, autoSwitched, switchChainAsync]);
+
   const [hint, setHint] = useState<string | null>(null);
 
   async function tryConnect(connector: Connector | undefined) {

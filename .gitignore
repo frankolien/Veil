@@ -95,3 +95,4 @@ tokenops/.vercel
 # Local-only env example duplicates (we ship the .example version only)
 # .env.local.example IS committed; .env.local is the secret one (caught above)
 
+.vercel

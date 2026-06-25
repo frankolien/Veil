@@ -20,6 +20,7 @@ import { Btn, EthereumMark, Icon, Pill, Wordmark } from "./primitives";
 import { VeilNav } from "./nav";
 import { ToastView, useToast } from "./toast";
 import { StartHere } from "./start-here";
+import { WrongChainGate } from "./wrong-chain-gate";
 import { Tip } from "./tip";
 import { GLOSSARY } from "./glossary";
 import { ConnectChip } from "./connect-chip";
@@ -353,6 +354,20 @@ export function VaultApp() {
 
   const decryptQuery = useUserDecrypt({ handles }, { enabled: revealArmed && handles.length > 0 });
 
+  // Handle the empty-position case: if reveal was armed but there's nothing to
+  // decrypt yet (no deposit, no borrow), short-circuit to zeros instead of
+  // waiting on a query that will never fire.
+  useEffect(() => {
+    if (!revealArmed) return;
+    const collateralEmpty = !collateralHandle || collateralHandle === ZERO_HANDLE;
+    const debtEmpty = !debtHandle || debtHandle === ZERO_HANDLE;
+    if (collateralEmpty && debtEmpty) {
+      setCollateral(0);
+      setDebt(0);
+      setRevealArmed(false);
+    }
+  }, [revealArmed, collateralHandle, debtHandle]);
+
   useEffect(() => {
     if (!revealArmed) return;
     if (decryptQuery.data) {
@@ -366,9 +381,26 @@ export function VaultApp() {
       setDebt(typeof d === "bigint" ? Number(d) : Number(d ?? 0));
       setRevealArmed(false);
     } else if (decryptQuery.isError) {
+      console.error("useUserDecrypt failed:", decryptQuery.error);
+      flash({ message: `Decrypt failed: ${formatError(decryptQuery.error)}`, tone: "error" });
       setRevealArmed(false);
     }
-  }, [revealArmed, decryptQuery.data, decryptQuery.isError, collateralHandle, debtHandle]);
+  }, [revealArmed, decryptQuery.data, decryptQuery.isError, decryptQuery.error, collateralHandle, debtHandle, flash]);
+
+  // 45s safety timeout — if the SDK hangs (relayer down, signature stuck,
+  // network issue) we'd otherwise spin forever with no feedback.
+  useEffect(() => {
+    if (!revealArmed) return;
+    const timer = setTimeout(() => {
+      console.warn("useUserDecrypt timed out after 45s — resetting.");
+      flash({
+        message: "Decrypt timed out. Check the Zama relayer and try again.",
+        tone: "error",
+      });
+      setRevealArmed(false);
+    }, 45_000);
+    return () => clearTimeout(timer);
+  }, [revealArmed, flash]);
 
   const onSuccess = useCallback(
     (a: Action, txHash: `0x${string}`) => {
@@ -407,6 +439,7 @@ export function VaultApp() {
       </header>
 
       <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
+        <WrongChainGate />
         {address && (
           <StartHere
             storageKey="veil.starthere.vault"

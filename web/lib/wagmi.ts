@@ -1,5 +1,5 @@
 import { createConfig, http } from "wagmi";
-import { sepolia } from "wagmi/chains";
+import { mainnet, sepolia } from "wagmi/chains";
 // Import individual connector modules to avoid pulling in optional connectors
 // (safe, porto, tempo) that have heavy peer dependencies.
 import { injected, walletConnect } from "wagmi/connectors";
@@ -25,11 +25,16 @@ const connectors = [
     : []),
 ];
 
+// Declare mainnet alongside sepolia so wagmi tracks the wallet's actual chain
+// id (instead of clamping `useChainId()` to the only declared chain). The
+// WrongChainGate uses this to detect mainnet-locked wallets and prompt a
+// switch. Veil only ever transacts on sepolia.
 export const wagmiConfig = createConfig({
-  chains: [sepolia],
+  chains: [sepolia, mainnet],
   connectors,
   transports: {
     [sepolia.id]: http(SEPOLIA_RPC),
+    [mainnet.id]: http(),
   },
   ssr: true,
 });

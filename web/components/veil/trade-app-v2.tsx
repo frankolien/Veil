@@ -21,6 +21,8 @@ import { VeilNav } from "./nav";
 import { LastClearedPanel } from "./last-cleared";
 import { ToastView, useToast } from "./toast";
 import { StartHere } from "./start-here";
+import { WrongChainGate } from "./wrong-chain-gate";
+import { AdvanceBatchPanel } from "./advance-batch";
 import { Tip } from "./tip";
 import { GLOSSARY } from "./glossary";
 import { ConnectChip } from "./connect-chip";
@@ -793,6 +795,19 @@ export function TradeAppV2() {
     { enabled: revealArmed && balanceDecryptHandles.length > 0 },
   );
 
+  // Empty-handles short-circuit: if reveal armed but no balances yet, skip the
+  // SDK call (it would never fire) and just write zeros.
+  useEffect(() => {
+    if (!revealArmed) return;
+    const baseEmpty = !baseBalanceHandle || baseBalanceHandle === ZERO_HANDLE;
+    const quoteEmpty = !quoteBalanceHandle || quoteBalanceHandle === ZERO_HANDLE;
+    if (baseEmpty && quoteEmpty) {
+      setBaseBalance(0);
+      setQuoteBalance(0);
+      setRevealArmed(false);
+    }
+  }, [revealArmed, baseBalanceHandle, quoteBalanceHandle]);
+
   useEffect(() => {
     if (!revealArmed) return;
     if (balanceQuery.data) {
@@ -808,9 +823,22 @@ export function TradeAppV2() {
       setQuoteBalance(typeof quoteRaw === "bigint" ? Number(quoteRaw) : Number(quoteRaw ?? 0));
       setRevealArmed(false);
     } else if (balanceQuery.isError) {
+      console.error("useUserDecrypt (balances) failed:", balanceQuery.error);
+      flash({ message: `Reveal failed: ${formatError(balanceQuery.error)}`, tone: "error" });
       setRevealArmed(false);
     }
-  }, [revealArmed, balanceQuery.data, balanceQuery.isError, baseBalanceHandle, quoteBalanceHandle]);
+  }, [revealArmed, balanceQuery.data, balanceQuery.isError, balanceQuery.error, baseBalanceHandle, quoteBalanceHandle, flash]);
+
+  // 45s safety timeout in case the SDK hangs (relayer down / sig stuck).
+  useEffect(() => {
+    if (!revealArmed) return;
+    const timer = setTimeout(() => {
+      console.warn("useUserDecrypt (balances) timed out after 45s — resetting.");
+      flash({ message: "Reveal timed out. Check the Zama relayer and try again.", tone: "error" });
+      setRevealArmed(false);
+    }, 45_000);
+    return () => clearTimeout(timer);
+  }, [revealArmed, flash]);
 
   function place(o: {
     side: "buy" | "sell";
@@ -894,6 +922,8 @@ export function TradeAppV2() {
       </header>
 
       <div className="flex-1 max-w-[1200px] w-full mx-auto px-4 sm:px-6 pt-[26px] pb-[calc(88px+env(safe-area-inset-bottom))] md:pb-16 flex flex-col gap-[22px]">
+        <WrongChainGate />
+        <AdvanceBatchPanel batchId={batchId} />
         {address && (
           <StartHere
             storageKey="veil.starthere.trade"
